@@ -18,9 +18,6 @@ FROM scratch
 # (googleapis.com, oauth2.googleapis.com, cloudcode-pa.googleapis.com, etc.)
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Copy timezone data for proper time handling
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-
 # Copy binary
 COPY --from=builder /build/gcli2apigo /gcli2apigo
 
