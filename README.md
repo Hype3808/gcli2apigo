@@ -207,7 +207,7 @@ docker run -d \
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/Hype3808/gcli2apigo
 cd gcli2apigo
 
 # Install dependencies
@@ -258,18 +258,8 @@ gcli2apigo/
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
 For support, please open an issue on GitHub or contact the maintainers.
-
-## Changelog
-
-### v1.0.0
-- Initial release with OpenAI-compatible API
-- Web dashboard for credential management
-- Usage tracking and error monitoring
-- Docker support with automated builds
-- Mobile-responsive dashboard
-- Bulk credential operations
