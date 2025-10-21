@@ -1,60 +1,39 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:alpine AS builder
 
-# Set working directory
-WORKDIR /app
+WORKDIR /build
 
-# Install git (needed for go mod download)
-RUN apk add --no-cache git
-
-# Copy go mod files
+# Copy go mod files and download dependencies
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy source code and build
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o gcli2apigo .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gcli2apigo .
+# Final stage - use scratch for minimal image
+FROM scratch
 
-# Final stage
-FROM alpine:latest
+# Copy CA certificates - REQUIRED for HTTPS requests to Google APIs
+# (googleapis.com, oauth2.googleapis.com, cloudcode-pa.googleapis.com, etc.)
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates tzdata
+# Copy timezone data for proper time handling
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
-# Create app directory
-WORKDIR /app
+# Copy binary
+COPY --from=builder /build/gcli2apigo /gcli2apigo
 
-# Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
-
-# Copy binary from builder stage
-COPY --from=builder /app/gcli2apigo .
-
-# Create oauth_creds directory with proper permissions
-RUN mkdir -p oauth_creds && \
-    chown -R appuser:appgroup /app && \
-    chmod 755 /app && \
-    chmod 700 oauth_creds
-
-# Switch to non-root user
-USER appuser
+# Copy oauth_creds folder with banlist.json and usage_stats.json
+COPY --from=builder /build/oauth_creds /oauth_creds
 
 # Expose port
 EXPOSE 7860
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:7860/health || exit 1
-
-# Set default environment variables
-ENV HOST=0.0.0.0
-ENV PORT=7860
-ENV GEMINI_AUTH_PASSWORD=123456
+# Set environment variables
+ENV HOST=0.0.0.0 \
+    PORT=7860 \
+    GEMINI_AUTH_PASSWORD=123456
 
 # Run the application
-CMD ["./gcli2apigo"]
+ENTRYPOINT ["/gcli2apigo"]
