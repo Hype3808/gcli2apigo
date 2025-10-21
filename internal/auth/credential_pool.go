@@ -60,6 +60,7 @@ func (cp *CredentialPool) GetRandomCredential() (*CredentialEntry, error) {
 	defer cp.mu.RUnlock()
 
 	if len(cp.credentials) == 0 {
+		fmt.Printf("[ERROR] No credentials available in pool - credential pool is empty\n")
 		return nil, errors.New("no credentials available in pool")
 	}
 
@@ -74,6 +75,7 @@ func (cp *CredentialPool) GetRandomCredential() (*CredentialEntry, error) {
 	}
 
 	if len(availableCredentials) == 0 {
+		fmt.Printf("[ERROR] No unbanned credentials available in pool - total credentials: %d, all are banned\n", len(cp.credentials))
 		return nil, errors.New("no unbanned credentials available in pool")
 	}
 
@@ -168,55 +170,69 @@ func ValidateCredential(data map[string]interface{}, filePath string) (*Credenti
 func LoadCredentialsFromFolder(folderPath string, pool *CredentialPool) error {
 	// Check if folder exists
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		fmt.Printf("[ERROR] Credentials folder does not exist: %s\n", folderPath)
 		return fmt.Errorf("credentials folder does not exist: %s", folderPath)
 	}
 
 	// Read all files in the folder
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
+		fmt.Printf("[ERROR] Failed to read credentials folder %s: %v\n", folderPath, err)
 		return fmt.Errorf("failed to read credentials folder: %w", err)
 	}
 
+	fmt.Printf("[INFO] Scanning credentials folder: %s (found %d files/directories)\n", folderPath, len(files))
+
 	loadedCount := 0
+	skippedCount := 0
 	for _, file := range files {
 		// Skip directories and non-JSON files
-		if file.IsDir() || filepath.Ext(file.Name()) != ".json" {
+		if file.IsDir() {
+			fmt.Printf("[DEBUG] Skipping directory: %s\n", file.Name())
+			skippedCount++
+			continue
+		}
+		if filepath.Ext(file.Name()) != ".json" {
+			fmt.Printf("[DEBUG] Skipping non-JSON file: %s\n", file.Name())
+			skippedCount++
 			continue
 		}
 
 		filePath := filepath.Join(folderPath, file.Name())
+		fmt.Printf("[DEBUG] Processing credential file: %s\n", filePath)
 
 		// Read file content
 		content, err := os.ReadFile(filePath)
 		if err != nil {
-			fmt.Printf("Warning: Failed to read credential file %s: %v\n", filePath, err)
+			fmt.Printf("[WARN] Failed to read credential file %s: %v\n", filePath, err)
 			continue
 		}
 
 		// Parse JSON
 		var data map[string]interface{}
 		if err := json.Unmarshal(content, &data); err != nil {
-			fmt.Printf("Warning: Invalid JSON in credential file %s: %v\n", filePath, err)
+			fmt.Printf("[WARN] Invalid JSON in credential file %s: %v\n", filePath, err)
 			continue
 		}
 
 		// Validate and create credential entry
 		entry, err := ValidateCredential(data, filePath)
 		if err != nil {
-			fmt.Printf("Warning: Invalid credential file %s: %v\n", filePath, err)
+			fmt.Printf("[WARN] Invalid credential file %s: %v\n", filePath, err)
 			continue
 		}
 
 		// Add to pool
 		if err := pool.AddCredential(entry); err != nil {
-			fmt.Printf("Warning: Failed to add credential from %s: %v\n", filePath, err)
+			fmt.Printf("[WARN] Failed to add credential from %s: %v\n", filePath, err)
 			continue
 		}
 
+		fmt.Printf("[INFO] Successfully loaded credential from %s (project: %s)\n", filePath, entry.ProjectID)
 		loadedCount++
 	}
 
-	fmt.Printf("Loaded %d credential(s) from folder: %s\n", loadedCount, folderPath)
+	fmt.Printf("[INFO] Loaded %d credential(s) from folder: %s (%d files skipped)\n", loadedCount, folderPath, skippedCount)
 	return nil
 }
 

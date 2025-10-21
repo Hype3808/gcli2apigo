@@ -24,6 +24,7 @@ func SendGeminiRequest(payload map[string]interface{}, isStreaming bool) (interf
 	// Step 1: Randomly obtain an OAuth credential from the oauth_creds folder
 	credEntry, err := auth.GetCredentialForRequest()
 	if err != nil {
+		log.Printf("[ERROR] Credential selection failed: %v", err)
 		return nil, fmt.Errorf("credential selection failed: %v", err)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"gcli2apigo/internal/auth"
 	"gcli2apigo/internal/banlist"
 	"gcli2apigo/internal/config"
 )
@@ -258,6 +259,11 @@ func (dh *DashboardHandlers) HandleDeleteCredential(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Reload credential pool after deletion
+	if err := auth.ReloadCredentialPool(); err != nil {
+		log.Printf("[WARN] Failed to reload credential pool after deletion: %v", err)
+	}
+
 	// Success response
 	log.Printf("[INFO] Successfully deleted credential for project: %s", projectID)
 	w.Header().Set("Content-Type", "application/json")
@@ -342,6 +348,11 @@ func (dh *DashboardHandlers) HandleUploadCredentials(w http.ResponseWriter, r *h
 			return
 		}
 
+		// Reload credential pool after upload
+		if err := auth.ReloadCredentialPool(); err != nil {
+			log.Printf("[WARN] Failed to reload credential pool after upload: %v", err)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -360,6 +371,11 @@ func (dh *DashboardHandlers) HandleUploadCredentials(w http.ResponseWriter, r *h
 				"error":   err.Error(),
 			})
 			return
+		}
+
+		// Reload credential pool after upload
+		if err := auth.ReloadCredentialPool(); err != nil {
+			log.Printf("[WARN] Failed to reload credential pool after upload: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

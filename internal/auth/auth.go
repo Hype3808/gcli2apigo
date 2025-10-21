@@ -373,6 +373,8 @@ func fileExists(filename string) bool {
 // InitializeCredentialPool initializes the global credential pool by loading credentials
 // from the configured folder and legacy sources for backward compatibility
 func InitializeCredentialPool() error {
+	log.Printf("[INFO] Initializing credential pool...")
+
 	// Create new credential pool
 	credentialPool = NewCredentialPool()
 
@@ -381,32 +383,38 @@ func InitializeCredentialPool() error {
 
 	// Create credentials folder if it doesn't exist
 	if err := os.MkdirAll(credsFolder, 0700); err != nil {
-		log.Printf("Warning: Failed to create credentials folder %s: %v", credsFolder, err)
+		log.Printf("[WARN] Failed to create credentials folder %s: %v", credsFolder, err)
 	}
 
 	// Log the credentials folder path being used
-	log.Printf("Using credentials folder: %s", credsFolder)
+	log.Printf("[INFO] Using credentials folder: %s", credsFolder)
 
 	// Track initial pool size to determine if folder is empty
 	initialSize := credentialPool.Size()
+	log.Printf("[DEBUG] Initial pool size: %d", initialSize)
 
 	// Load credentials from folder
 	if err := LoadCredentialsFromFolder(credsFolder, credentialPool); err != nil {
-		log.Printf("Warning: Failed to load credentials from folder: %v", err)
+		log.Printf("[WARN] Failed to load credentials from folder: %v", err)
 	}
 
 	// Determine if folder was empty (no credentials loaded from folder)
 	folderIsEmpty := (credentialPool.Size() == initialSize)
+	log.Printf("[DEBUG] Folder is empty: %v (pool size after folder load: %d)", folderIsEmpty, credentialPool.Size())
 
 	// Load legacy credentials for backward compatibility
 	legacyCount := LoadLegacyCredential(credentialPool, config.ScriptDir, folderIsEmpty)
 	if legacyCount > 0 {
-		log.Printf("Loaded %d legacy credential(s) for backward compatibility", legacyCount)
+		log.Printf("[INFO] Loaded %d legacy credential(s) for backward compatibility", legacyCount)
 	}
 
 	// Log final credential count
 	totalCredentials := credentialPool.Size()
-	log.Printf("Credential pool initialized with %d credential(s)", totalCredentials)
+	if totalCredentials == 0 {
+		log.Printf("[WARN] Credential pool initialized with 0 credentials - API requests will fail until credentials are added")
+	} else {
+		log.Printf("[INFO] Credential pool initialized with %d credential(s)", totalCredentials)
+	}
 
 	// Return nil to allow server to start even with no credentials
 	// API requests will fail with appropriate error messages if no credentials available
@@ -436,4 +444,40 @@ func GetCredentialForRequest() (*CredentialEntry, error) {
 func ResetOnboardingState() {
 	onboardingComplete = false
 	log.Printf("[DEBUG] Onboarding state reset")
+}
+
+// ReloadCredentialPool reloads the credential pool from disk
+// This should be called after credentials are added or removed via the dashboard
+func ReloadCredentialPool() error {
+	log.Printf("[INFO] Reloading credential pool...")
+
+	// Create new credential pool
+	newPool := NewCredentialPool()
+
+	// Get credentials folder path from config
+	credsFolder := config.OAuthCredsFolder
+
+	// Load credentials from folder
+	if err := LoadCredentialsFromFolder(credsFolder, newPool); err != nil {
+		log.Printf("[WARN] Failed to load credentials from folder during reload: %v", err)
+	}
+
+	// Load legacy credentials for backward compatibility
+	legacyCount := LoadLegacyCredential(newPool, config.ScriptDir, newPool.Size() == 0)
+	if legacyCount > 0 {
+		log.Printf("[INFO] Loaded %d legacy credential(s) during reload", legacyCount)
+	}
+
+	// Replace the global credential pool
+	credentialPool = newPool
+
+	// Log final credential count
+	totalCredentials := credentialPool.Size()
+	if totalCredentials == 0 {
+		log.Printf("[WARN] Credential pool reloaded with 0 credentials")
+	} else {
+		log.Printf("[INFO] Credential pool reloaded with %d credential(s)", totalCredentials)
+	}
+
+	return nil
 }

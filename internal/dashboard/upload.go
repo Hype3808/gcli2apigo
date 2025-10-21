@@ -59,7 +59,7 @@ func HandleJSONUpload(file multipart.File, filename string) (int, error) {
 		return 0, fmt.Errorf("failed to save credential file: %v", err)
 	}
 
-	log.Printf("[INFO] Successfully saved credential for project: %s", projectID)
+	log.Printf("[INFO] Successfully saved credential for project: %s (from %s)", projectID, filename)
 	return 1, nil
 }
 
