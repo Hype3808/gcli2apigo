@@ -2025,15 +2025,19 @@ var dashboardTemplate = `<!DOCTYPE html>
 
         // Browse button
         if (browseBtn) {
-            browseBtn.addEventListener('click', () => {
+            browseBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to uploadArea
                 fileInput.click();
             });
         }
 
         // Click upload area to browse
         if (uploadArea) {
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
+            uploadArea.addEventListener('click', (e) => {
+                // Only trigger if clicking the area itself, not the button
+                if (e.target === uploadArea || e.target.closest('.upload-text') || e.target.closest('.upload-icon')) {
+                    fileInput.click();
+                }
             });
         }
 
