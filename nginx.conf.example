@@ -1,0 +1,87 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream gcli2apigo {
+        server gcli2apigo:7860;
+    }
+
+    # Rate limiting
+    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+    limit_req_zone $binary_remote_addr zone=dashboard:10m rate=5r/s;
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        # Security headers
+        add_header X-Frame-Options DENY;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection "1; mode=block";
+        add_header Referrer-Policy strict-origin-when-cross-origin;
+
+        # API endpoints with rate limiting
+        location ~ ^/(v1|v1beta)/ {
+            limit_req zone=api burst=20 nodelay;
+            
+            proxy_pass http://gcli2apigo;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # Timeout settings for streaming
+            proxy_read_timeout 300s;
+            proxy_connect_timeout 10s;
+            proxy_send_timeout 10s;
+            
+            # Disable buffering for streaming responses
+            proxy_buffering off;
+            proxy_cache off;
+        }
+
+        # Dashboard with rate limiting
+        location /dashboard {
+            limit_req zone=dashboard burst=10 nodelay;
+            
+            proxy_pass http://gcli2apigo;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Health check (no rate limiting)
+        location /health {
+            proxy_pass http://gcli2apigo;
+            access_log off;
+        }
+
+        # Root and other endpoints
+        location / {
+            limit_req zone=dashboard burst=10 nodelay;
+            
+            proxy_pass http://gcli2apigo;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+
+    # HTTPS server (uncomment and configure SSL certificates)
+    # server {
+    #     listen 443 ssl http2;
+    #     server_name localhost;
+    #
+    #     ssl_certificate /etc/nginx/ssl/cert.pem;
+    #     ssl_certificate_key /etc/nginx/ssl/key.pem;
+    #     ssl_protocols TLSv1.2 TLSv1.3;
+    #     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+    #     ssl_prefer_server_ciphers off;
+    #
+    #     # Same location blocks as HTTP server
+    #     # ...
+    # }
+}
