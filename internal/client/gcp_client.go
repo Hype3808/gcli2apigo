@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -49,11 +50,14 @@ func (gc *GCPClient) ListProjects() ([]Project, error) {
 	pageToken := ""
 
 	for {
-		// Build the API URL
-		url := "https://cloudresourcemanager.googleapis.com/v1/projects"
+		// Build the API URL using strings.Builder to avoid allocations
+		var urlBuilder strings.Builder
+		urlBuilder.WriteString("https://cloudresourcemanager.googleapis.com/v1/projects")
 		if pageToken != "" {
-			url += "?pageToken=" + pageToken
+			urlBuilder.WriteString("?pageToken=")
+			urlBuilder.WriteString(pageToken)
 		}
+		url := urlBuilder.String()
 
 		// Create the request
 		req, err := http.NewRequest("GET", url, nil)
@@ -62,8 +66,11 @@ func (gc *GCPClient) ListProjects() ([]Project, error) {
 			return nil, fmt.Errorf("failed to create request: %v", err)
 		}
 
-		// Add authorization header
-		req.Header.Set("Authorization", "Bearer "+gc.token.AccessToken)
+		// Add authorization header using strings.Builder to avoid allocation
+		var authHeader strings.Builder
+		authHeader.WriteString("Bearer ")
+		authHeader.WriteString(gc.token.AccessToken)
+		req.Header.Set("Authorization", authHeader.String())
 		req.Header.Set("Content-Type", "application/json")
 
 		// Send the request
@@ -146,8 +153,11 @@ func (gc *GCPClient) EnableService(projectID string, serviceName string) error {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Add authorization header
-	req.Header.Set("Authorization", "Bearer "+gc.token.AccessToken)
+	// Add authorization header using strings.Builder to avoid allocation
+	var authHeader strings.Builder
+	authHeader.WriteString("Bearer ")
+	authHeader.WriteString(gc.token.AccessToken)
+	req.Header.Set("Authorization", authHeader.String())
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request
@@ -184,8 +194,11 @@ func (gc *GCPClient) isServiceEnabled(projectID string, serviceName string) (boo
 		return false, fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Add authorization header
-	req.Header.Set("Authorization", "Bearer "+gc.token.AccessToken)
+	// Add authorization header using strings.Builder to avoid allocation
+	var authHeader strings.Builder
+	authHeader.WriteString("Bearer ")
+	authHeader.WriteString(gc.token.AccessToken)
+	req.Header.Set("Authorization", authHeader.String())
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request

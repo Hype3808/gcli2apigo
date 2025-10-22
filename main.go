@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
@@ -103,6 +104,9 @@ func main() {
 	// Wrap with CORS middleware
 	handler := corsMiddleware(mux)
 
+	// Setup graceful shutdown
+	setupGracefulShutdown()
+
 	// Start server
 	addr := fmt.Sprintf("%s:%s", host, port)
 	log.Printf("Server listening on %s", addr)
@@ -142,12 +146,12 @@ func handleRoot(w http.ResponseWriter, r *http.Request, dashboardHandlers *dashb
 }
 
 func handleAPIInfo(w http.ResponseWriter, r *http.Request) {
-	response := map[string]interface{}{
+	response := map[string]any{
 		"name":        "gcli2apigo",
 		"description": "OpenAI-compatible API proxy for Google's Gemini models via gemini-cli",
 		"purpose":     "Provides both OpenAI-compatible endpoints (/v1/chat/completions) and native Gemini API endpoints for accessing Google's Gemini models",
 		"version":     "1.0.0",
-		"endpoints": map[string]interface{}{
+		"endpoints": map[string]any{
 			"openai_compatible": map[string]string{
 				"chat_completions": "/v1/chat/completions",
 				"models":           "/v1/models",
@@ -246,11 +250,41 @@ func ensureJSONFiles(credsDir string) {
 	// Ensure usage_stats.json exists
 	usageStatsPath := filepath.Join(credsDir, "usage_stats.json")
 	if _, err := os.Stat(usageStatsPath); os.IsNotExist(err) {
-		emptyUsageStats := make(map[string]interface{})
+		emptyUsageStats := make(map[string]any)
 		if data, err := json.MarshalIndent(emptyUsageStats, "", "  "); err == nil {
 			if err := os.WriteFile(usageStatsPath, data, 0600); err == nil {
 				log.Printf("Created empty usage_stats.json file")
 			}
 		}
 	}
+}
+
+// setupGracefulShutdown sets up signal handlers for graceful shutdown
+func setupGracefulShutdown() {
+	// Note: On Windows, os.Interrupt is the only signal that works reliably
+	// SIGTERM is not supported on Windows
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+
+	go func() {
+		<-sigChan
+		log.Println("\nReceived interrupt signal, shutting down gracefully...")
+
+		// Save usage stats
+		if err := usage.GetTracker().Save(); err != nil {
+			log.Printf("Warning: Failed to save usage stats: %v", err)
+		} else {
+			log.Println("Usage stats saved successfully")
+		}
+
+		// Save banlist
+		if err := banlist.GetBanList().Save(); err != nil {
+			log.Printf("Warning: Failed to save banlist: %v", err)
+		} else {
+			log.Println("Banlist saved successfully")
+		}
+
+		log.Println("Shutdown complete")
+		os.Exit(0)
+	}()
 }

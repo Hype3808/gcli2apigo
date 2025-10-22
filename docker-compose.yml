@@ -12,19 +12,13 @@ services:
       - GEMINI_AUTH_PASSWORD=${GEMINI_AUTH_PASSWORD:-your-secure-password-here}
       - HOST=0.0.0.0
       - PORT=7860
-      - OAUTH_CREDS_FOLDER=/app/oauth_creds
+      - OAUTH_CREDS_FOLDER=/oauth_creds
     volumes:
       # Mount oauth_creds directory to persist credentials
-      - ./oauth_creds:/app/oauth_creds
+      - ./oauth_creds:/oauth_creds
       # Optional: Mount .env file if you have one
       # - ./.env:/app/.env:ro
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7860/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     networks:
       - gcli2apigo-network
     labels:
@@ -35,19 +29,3 @@ networks:
   gcli2apigo-network:
     driver: bridge
     name: gcli2apigo-network
-
-# Optional: Add a reverse proxy (uncomment if needed)
-# nginx:
-#   image: nginx:alpine
-#   container_name: gcli2apigo-nginx
-#   ports:
-#     - "80:80"
-#     - "443:443"
-#   volumes:
-#     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-#     - ./ssl:/etc/nginx/ssl:ro
-#   depends_on:
-#     - gcli2apigo
-#   networks:
-#     - gcli2apigo-network
-#   restart: unless-stopped

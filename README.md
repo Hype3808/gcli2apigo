@@ -20,10 +20,12 @@ OpenAI-compatible API proxy for Google's Gemini models with web dashboard manage
 - gemini-2.5-pro-preview-03-25
 - gemini-2.5-pro-preview-05-06
 - gemini-2.5-pro-preview-06-05
+- gemini-flash-latest
 - gemini-2.5-flash
 - gemini-2.5-flash-preview-05-20
 - gemini-2.5-flash-preview-04-17
 - gemini-2.5-flash-image-preview
+- gemini-2.5-flash-image
 
 ## Quick Start
 
@@ -31,7 +33,7 @@ OpenAI-compatible API proxy for Google's Gemini models with web dashboard manage
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/Hype3808/gcli2apigo
 cd gcli2apigo
 
 # Run with docker-compose
@@ -63,6 +65,7 @@ export PORT="7860"
 | `HOST` | `0.0.0.0` | Server bind address |
 | `PORT` | `7860` | Server port |
 | `OAUTH_CREDS_FOLDER` | `oauth_creds` | Directory for OAuth credential files |
+| `DEBUG_LOGGING` | `false` | Enable verbose debug logging (set to `true` to enable) |
 
 ### Directory Structure
 

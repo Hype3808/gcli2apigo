@@ -30,9 +30,12 @@ type ProjectUsage struct {
 
 // UsageTracker manages usage statistics for all projects
 type UsageTracker struct {
-	usageMap  map[string]*ProjectUsage
-	mu        sync.RWMutex
-	storePath string
+	usageMap     map[string]*ProjectUsage
+	mu           sync.RWMutex
+	storePath    string
+	dirty        bool // Tracks if data needs to be saved
+	dirtyMu      sync.Mutex
+	lastSaveTime time.Time
 }
 
 var (
@@ -46,6 +49,7 @@ func GetTracker() *UsageTracker {
 		globalTracker = NewUsageTracker()
 		globalTracker.Load()
 		go globalTracker.autoResetLoop()
+		go globalTracker.autoSaveLoop() // Batch save every 5 seconds
 	})
 	return globalTracker
 }
@@ -90,8 +94,8 @@ func (ut *UsageTracker) IncrementUsage(projectID string, isProModel bool) {
 	// Clear error code on successful request
 	usage.LastErrorCode = 0
 
-	// Save to disk
-	go ut.Save()
+	// Mark as dirty for batch save
+	ut.markDirty()
 }
 
 // SetErrorCode sets the error code for a project
@@ -111,8 +115,8 @@ func (ut *UsageTracker) SetErrorCode(projectID string, errorCode int) {
 	usage.LastErrorCode = errorCode
 	usage.LastUpdateTime = time.Now()
 
-	// Save to disk
-	go ut.Save()
+	// Mark as dirty for batch save
+	ut.markDirty()
 }
 
 // GetLastErrorCode returns the last error code for a project
@@ -319,4 +323,35 @@ func IsProModel(modelName string) bool {
 	return len(modelName) >= 3 &&
 		(modelName[len(modelName)-3:] == "pro" ||
 			len(modelName) >= 4 && modelName[len(modelName)-4:len(modelName)-1] == "pro-")
+}
+
+// markDirty marks the tracker as having unsaved changes
+func (ut *UsageTracker) markDirty() {
+	ut.dirtyMu.Lock()
+	ut.dirty = true
+	ut.dirtyMu.Unlock()
+}
+
+// autoSaveLoop runs a background goroutine that saves usage stats every 5 seconds if dirty
+// This batches disk writes to improve performance under high load
+func (ut *UsageTracker) autoSaveLoop() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		ut.dirtyMu.Lock()
+		isDirty := ut.dirty
+		ut.dirtyMu.Unlock()
+
+		if isDirty {
+			if err := ut.Save(); err != nil {
+				log.Printf("[ERROR] Auto-save failed: %v", err)
+			} else {
+				ut.dirtyMu.Lock()
+				ut.dirty = false
+				ut.lastSaveTime = time.Now()
+				ut.dirtyMu.Unlock()
+			}
+		}
+	}
 }

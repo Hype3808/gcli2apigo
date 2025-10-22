@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"gcli2apigo/internal/auth"
 	"gcli2apigo/internal/client"
 	"gcli2apigo/internal/config"
 
@@ -370,6 +371,16 @@ func (oh *OAuthHandler) HandleOAuthProcess(w http.ResponseWriter, r *http.Reques
 		log.Printf("[INFO] Successfully saved credential for project: %s", project.ProjectID)
 		sendEvent("success", fmt.Sprintf("✓ Saved credential for project: %s", project.ProjectID))
 		successCount++
+	}
+
+	// Reload credential pool after saving credentials
+	if successCount > 0 {
+		if err := auth.ReloadCredentialPool(); err != nil {
+			log.Printf("[WARN] Failed to reload credential pool after OAuth flow: %v", err)
+			sendEvent("warning", "Credentials saved but pool reload failed. Server restart may be required.")
+		} else {
+			log.Printf("[INFO] Credential pool reloaded successfully with %d new credential(s)", successCount)
+		}
 	}
 
 	// Send final summary

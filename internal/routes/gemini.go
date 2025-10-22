@@ -151,6 +151,7 @@ func handleGeminiStreamingResponse(w http.ResponseWriter, result interface{}) {
 	w.Header().Set("X-XSS-Protection", "0")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Accel-Buffering", "no")
 	w.Header().Set("Server", "ESF")
 
 	flusher, ok := w.(http.Flusher)

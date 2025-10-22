@@ -15,16 +15,17 @@ import (
 	"time"
 
 	"gcli2apigo/internal/config"
+	"gcli2apigo/internal/httputil"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 var (
-	userProjectID      string
-	onboardingComplete bool
-	oauthConfig        *oauth2.Config
-	credentialPool     *CredentialPool
+	userProjectID   string
+	oauthConfig     *oauth2.Config
+	credentialPool  *CredentialPool
+	onboardingCache *OnboardingCache
 )
 
 func init() {
@@ -121,7 +122,9 @@ func SaveRefreshedToken(credEntry *CredentialEntry) error {
 	newExpiry := credEntry.Token.Expiry.Format(time.RFC3339)
 	credData["expiry"] = newExpiry
 
-	log.Printf("[DEBUG] Updating credential file with new expiry: %s", newExpiry)
+	if config.IsDebugEnabled() {
+		log.Printf("[DEBUG] Updating credential file with new expiry: %s", newExpiry)
+	}
 
 	// Only update refresh token if it's present in the new token
 	if credEntry.Token.RefreshToken != "" {
@@ -138,19 +141,36 @@ func SaveRefreshedToken(credEntry *CredentialEntry) error {
 		return fmt.Errorf("failed to write credential file: %v", err)
 	}
 
-	log.Printf("[DEBUG] Saved refreshed token to: %s", credEntry.FilePath)
+	if config.IsDebugEnabled() {
+		log.Printf("[DEBUG] Saved refreshed token to: %s", credEntry.FilePath)
+	}
 	return nil
+}
+
+// SaveRefreshedTokenAsync saves a refreshed token asynchronously without blocking
+func SaveRefreshedTokenAsync(credEntry *CredentialEntry) {
+	go func() {
+		if err := SaveRefreshedToken(credEntry); err != nil {
+			log.Printf("[WARN] Failed to save refreshed token asynchronously: %v", err)
+		}
+	}()
 }
 
 // OnboardUser ensures the user is onboarded
 func OnboardUser(token *oauth2.Token, projectID string) error {
-	if onboardingComplete {
+	// Check cache first to avoid redundant API calls
+	if onboardingCache != nil && onboardingCache.IsOnboarded(projectID) {
+		if config.IsDebugEnabled() {
+			log.Printf("[DEBUG] Project %s already onboarded (cached)", projectID)
+		}
 		return nil
 	}
 
 	// Refresh token if expired
 	if token.Expiry.Before(time.Now()) && token.RefreshToken != "" {
-		log.Printf("[DEBUG] Token expired in OnboardUser, refreshing...")
+		if config.IsDebugEnabled() {
+			log.Printf("[DEBUG] Token expired in OnboardUser, refreshing...")
+		}
 
 		// Extract client credentials from token extra data or use defaults
 		clientID := config.ClientID
@@ -179,7 +199,9 @@ func OnboardUser(token *oauth2.Token, projectID string) error {
 			return fmt.Errorf("failed to refresh credentials during onboarding: %v", err)
 		}
 
-		log.Printf("[DEBUG] Token refreshed successfully in OnboardUser")
+		if config.IsDebugEnabled() {
+			log.Printf("[DEBUG] Token refreshed successfully in OnboardUser")
+		}
 		*token = *newToken
 		SaveCredentials(token, "")
 	}
@@ -225,7 +247,13 @@ func OnboardUser(token *oauth2.Token, projectID string) error {
 	}
 
 	if _, ok := loadData["currentTier"]; ok {
-		onboardingComplete = true
+		// Mark project as onboarded in cache
+		if onboardingCache != nil {
+			onboardingCache.MarkOnboarded(projectID)
+			if config.IsDebugEnabled() {
+				log.Printf("[DEBUG] Project %s marked as onboarded in cache (already onboarded)", projectID)
+			}
+		}
 		return nil
 	}
 
@@ -243,7 +271,13 @@ func OnboardUser(token *oauth2.Token, projectID string) error {
 		}
 
 		if done, _ := lroData["done"].(bool); done {
-			onboardingComplete = true
+			// Mark project as onboarded in cache after successful onboarding
+			if onboardingCache != nil {
+				onboardingCache.MarkOnboarded(projectID)
+				if config.IsDebugEnabled() {
+					log.Printf("[DEBUG] Project %s marked as onboarded in cache (newly onboarded)", projectID)
+				}
+			}
 			break
 		}
 
@@ -341,8 +375,8 @@ func makeAPIRequest(token *oauth2.Token, endpoint string, payload map[string]int
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", config.GetUserAgent())
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	// Use the shared HTTP client for connection pooling
+	resp, err := httputil.SharedHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -375,6 +409,10 @@ func fileExists(filename string) bool {
 func InitializeCredentialPool() error {
 	log.Printf("[INFO] Initializing credential pool...")
 
+	// Initialize the onboarding cache
+	onboardingCache = NewOnboardingCache()
+	log.Printf("[INFO] Onboarding cache initialized")
+
 	// Create new credential pool
 	credentialPool = NewCredentialPool()
 
@@ -391,7 +429,9 @@ func InitializeCredentialPool() error {
 
 	// Track initial pool size to determine if folder is empty
 	initialSize := credentialPool.Size()
-	log.Printf("[DEBUG] Initial pool size: %d", initialSize)
+	if config.IsDebugEnabled() {
+		log.Printf("[DEBUG] Initial pool size: %d", initialSize)
+	}
 
 	// Load credentials from folder
 	if err := LoadCredentialsFromFolder(credsFolder, credentialPool); err != nil {
@@ -400,7 +440,9 @@ func InitializeCredentialPool() error {
 
 	// Determine if folder was empty (no credentials loaded from folder)
 	folderIsEmpty := (credentialPool.Size() == initialSize)
-	log.Printf("[DEBUG] Folder is empty: %v (pool size after folder load: %d)", folderIsEmpty, credentialPool.Size())
+	if config.IsDebugEnabled() {
+		log.Printf("[DEBUG] Folder is empty: %v (pool size after folder load: %d)", folderIsEmpty, credentialPool.Size())
+	}
 
 	// Load legacy credentials for backward compatibility
 	legacyCount := LoadLegacyCredential(credentialPool, config.ScriptDir, folderIsEmpty)
@@ -435,15 +477,21 @@ func GetCredentialForRequest() (*CredentialEntry, error) {
 	}
 
 	// Log selected credential's project ID at debug level
-	log.Printf("[DEBUG] Selected credential with project ID: %s", credEntry.ProjectID)
+	if config.IsDebugEnabled() {
+		log.Printf("[DEBUG] Selected credential with project ID: %s", credEntry.ProjectID)
+	}
 
 	return credEntry, nil
 }
 
-// ResetOnboardingState resets the onboarding completion flag
+// ResetOnboardingState clears the onboarding cache
 func ResetOnboardingState() {
-	onboardingComplete = false
-	log.Printf("[DEBUG] Onboarding state reset")
+	if onboardingCache != nil {
+		onboardingCache.Clear()
+		if config.IsDebugEnabled() {
+			log.Printf("[DEBUG] Onboarding cache cleared")
+		}
+	}
 }
 
 // ReloadCredentialPool reloads the credential pool from disk
@@ -480,4 +528,12 @@ func ReloadCredentialPool() error {
 	}
 
 	return nil
+}
+
+// GetCredentialPoolSize returns the number of available (unbanned) credentials in the pool
+func GetCredentialPoolSize() int {
+	if credentialPool == nil {
+		return 0
+	}
+	return credentialPool.GetAvailableCredentialCount()
 }

@@ -69,6 +69,12 @@ func OpenAIRequestToGemini(req *models.OpenAIChatCompletionRequest) map[string]i
 
 	// Map OpenAI generation parameters to Gemini format
 	generationConfig := make(map[string]interface{})
+
+	// Set minimum thinking budget for all models
+	generationConfig["thinkingConfig"] = map[string]interface{}{
+		"thinkingBudget": config.GetThinkingBudget(req.Model),
+	}
+
 	if req.Temperature != nil {
 		generationConfig["temperature"] = *req.Temperature
 	}
@@ -115,7 +121,7 @@ func OpenAIRequestToGemini(req *models.OpenAIChatCompletionRequest) map[string]i
 		"contents":         contents,
 		"generationConfig": generationConfig,
 		"safetySettings":   config.DefaultSafetySettings,
-		"model":            config.GetBaseModelName(req.Model),
+		"model":            req.Model,
 	}
 
 	return requestPayload

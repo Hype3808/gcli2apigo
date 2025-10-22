@@ -25,12 +25,15 @@ type CredentialEntry struct {
 type CredentialPool struct {
 	credentials []*CredentialEntry
 	mu          sync.RWMutex
+	rng         *rand.Rand // Reusable random number generator
+	rngMu       sync.Mutex // Protects rng (rand.Rand is not thread-safe)
 }
 
 // NewCredentialPool creates a new empty credential pool
 func NewCredentialPool() *CredentialPool {
 	return &CredentialPool{
 		credentials: make([]*CredentialEntry, 0),
+		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -79,9 +82,11 @@ func (cp *CredentialPool) GetRandomCredential() (*CredentialEntry, error) {
 		return nil, errors.New("no unbanned credentials available in pool")
 	}
 
-	// Use time-based seed for randomization
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	idx := r.Intn(len(availableCredentials))
+	// Use shared random number generator with mutex protection
+	cp.rngMu.Lock()
+	idx := cp.rng.Intn(len(availableCredentials))
+	cp.rngMu.Unlock()
+
 	return availableCredentials[idx], nil
 }
 
@@ -91,6 +96,21 @@ func (cp *CredentialPool) Size() int {
 	defer cp.mu.RUnlock()
 
 	return len(cp.credentials)
+}
+
+// GetAvailableCredentialCount returns the number of unbanned credentials in the pool
+func (cp *CredentialPool) GetAvailableCredentialCount() int {
+	cp.mu.RLock()
+	defer cp.mu.RUnlock()
+
+	bl := banlist.GetBanList()
+	count := 0
+	for _, cred := range cp.credentials {
+		if !bl.IsBanned(cred.ProjectID) {
+			count++
+		}
+	}
+	return count
 }
 
 // ValidateCredential validates credential JSON data and returns a CredentialEntry
@@ -194,6 +214,14 @@ func LoadCredentialsFromFolder(folderPath string, pool *CredentialPool) error {
 		}
 		if filepath.Ext(file.Name()) != ".json" {
 			fmt.Printf("[DEBUG] Skipping non-JSON file: %s\n", file.Name())
+			skippedCount++
+			continue
+		}
+
+		// Skip non-credential JSON files (banlist, usage stats, etc.)
+		fileName := file.Name()
+		if fileName == "banlist.json" || fileName == "usage_stats.json" {
+			fmt.Printf("[DEBUG] Skipping non-credential file: %s\n", fileName)
 			skippedCount++
 			continue
 		}

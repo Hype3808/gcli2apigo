@@ -63,11 +63,19 @@ func init() {
 // Authentication
 var GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
 
+// Debug Logging
+var DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
+
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
 	return defaultValue
+}
+
+// IsDebugEnabled returns true if debug logging is enabled
+func IsDebugEnabled() bool {
+	return DebugLoggingEnabled
 }
 
 // SafetySetting represents a safety setting for the Gemini API
@@ -105,54 +113,15 @@ type Model struct {
 	TopK                       int      `json:"topK"`
 }
 
-// BaseModels (without search variants)
+// BaseModels (without search variants) - Updated with latest models as of October 2025
 var BaseModels = []Model{
 	{
-		Name:                       "models/gemini-2.5-pro-preview-03-25",
-		Version:                    "001",
-		DisplayName:                "Gemini 2.5 Pro Preview 03-25",
-		Description:                "Preview version of Gemini 2.5 Pro from May 6th",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
-		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
-		Temperature:                1.0,
-		MaxTemperature:             2.0,
-		TopP:                       0.95,
-		TopK:                       64,
-	},
-	{
-		Name:                       "models/gemini-2.5-pro-preview-05-06",
-		Version:                    "001",
-		DisplayName:                "Gemini 2.5 Pro Preview 05-06",
-		Description:                "Preview version of Gemini 2.5 Pro from May 6th",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
-		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
-		Temperature:                1.0,
-		MaxTemperature:             2.0,
-		TopP:                       0.95,
-		TopK:                       64,
-	},
-	{
-		Name:                       "models/gemini-2.5-pro-preview-06-05",
-		Version:                    "001",
-		DisplayName:                "Gemini 2.5 Pro Preview 06-05",
-		Description:                "Preview version of Gemini 2.5 Pro from June 5th",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
-		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
-		Temperature:                1.0,
-		MaxTemperature:             2.0,
-		TopP:                       0.95,
-		TopK:                       64,
-	},
-	{
-		Name:                       "models/gemini-2.5-pro",
-		Version:                    "001",
+		Name:                       "models/gemini-2.5-pro-002",
+		Version:                    "002",
 		DisplayName:                "Gemini 2.5 Pro",
-		Description:                "Advanced multimodal model with enhanced capabilities",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
+		Description:                "Latest stable version of Gemini 2.5 Pro with enhanced capabilities",
+		InputTokenLimit:            2097152,
+		OutputTokenLimit:           65536,
 		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
 		Temperature:                1.0,
 		MaxTemperature:             2.0,
@@ -160,38 +129,12 @@ var BaseModels = []Model{
 		TopK:                       64,
 	},
 	{
-		Name:                       "models/gemini-2.5-flash-preview-05-20",
-		Version:                    "001",
-		DisplayName:                "Gemini 2.5 Flash Preview 05-20",
-		Description:                "Preview version of Gemini 2.5 Flash from May 20th",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
-		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
-		Temperature:                1.0,
-		MaxTemperature:             2.0,
-		TopP:                       0.95,
-		TopK:                       64,
-	},
-	{
-		Name:                       "models/gemini-2.5-flash-preview-04-17",
-		Version:                    "001",
-		DisplayName:                "Gemini 2.5 Flash Preview 04-17",
-		Description:                "Preview version of Gemini 2.5 Flash from April 17th",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
-		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
-		Temperature:                1.0,
-		MaxTemperature:             2.0,
-		TopP:                       0.95,
-		TopK:                       64,
-	},
-	{
-		Name:                       "models/gemini-2.5-flash",
-		Version:                    "001",
+		Name:                       "models/gemini-2.5-flash-002",
+		Version:                    "002",
 		DisplayName:                "Gemini 2.5 Flash",
-		Description:                "Fast and efficient multimodal model with latest improvements",
+		Description:                "Latest stable version of Gemini 2.5 Flash - fast and efficient",
 		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
+		OutputTokenLimit:           65536,
 		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
 		Temperature:                1.0,
 		MaxTemperature:             2.0,
@@ -199,12 +142,116 @@ var BaseModels = []Model{
 		TopK:                       64,
 	},
 	{
-		Name:                       "models/gemini-2.5-flash-image-preview",
+		Name:                       "models/gemini-2.5-flash-8b-002",
+		Version:                    "002",
+		DisplayName:                "Gemini 2.5 Flash 8B",
+		Description:                "Lightweight version of Gemini 2.5 Flash with 8B parameters",
+		InputTokenLimit:            1048576,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-2.5-flash-thinking-exp-01-21",
 		Version:                    "001",
-		DisplayName:                "Gemini 2.5 Flash Image Preview",
-		Description:                "Gemini 2.5 Flash Image Preview",
+		DisplayName:                "Gemini 2.5 Flash Thinking Experimental",
+		Description:                "Experimental thinking model with enhanced reasoning capabilities",
 		InputTokenLimit:            32768,
 		OutputTokenLimit:           32768,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-exp-1206",
+		Version:                    "001",
+		DisplayName:                "Gemini Experimental 1206",
+		Description:                "Latest experimental Gemini model with cutting-edge features",
+		InputTokenLimit:            2097152,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-exp-1121",
+		Version:                    "001",
+		DisplayName:                "Gemini Experimental 1121",
+		Description:                "Experimental Gemini model from November 2024",
+		InputTokenLimit:            2097152,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-1.5-pro-002",
+		Version:                    "002",
+		DisplayName:                "Gemini 1.5 Pro",
+		Description:                "Latest stable version of Gemini 1.5 Pro",
+		InputTokenLimit:            2097152,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-1.5-flash-002",
+		Version:                    "002",
+		DisplayName:                "Gemini 1.5 Flash",
+		Description:                "Latest stable version of Gemini 1.5 Flash",
+		InputTokenLimit:            1048576,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-1.5-flash-8b-002",
+		Version:                    "002",
+		DisplayName:                "Gemini 1.5 Flash 8B",
+		Description:                "Lightweight version of Gemini 1.5 Flash with 8B parameters",
+		InputTokenLimit:            1048576,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-pro-latest",
+		Version:                    "001",
+		DisplayName:                "Gemini Pro Latest",
+		Description:                "Always points to the latest stable Pro model",
+		InputTokenLimit:            2097152,
+		OutputTokenLimit:           65536,
+		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
+		Temperature:                1.0,
+		MaxTemperature:             2.0,
+		TopP:                       0.95,
+		TopK:                       64,
+	},
+	{
+		Name:                       "models/gemini-flash-latest",
+		Version:                    "001",
+		DisplayName:                "Gemini Flash Latest",
+		Description:                "Always points to the latest stable Flash model",
+		InputTokenLimit:            1048576,
+		OutputTokenLimit:           65536,
 		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
 		Temperature:                1.0,
 		MaxTemperature:             2.0,
@@ -229,25 +276,11 @@ func init() {
 	SupportedModels = allModels
 }
 
-// GetBaseModelName returns the model name as-is (no variants to strip)
-func GetBaseModelName(modelName string) string {
-	return modelName
-}
-
-// IsSearchModel always returns false (no search variants)
-func IsSearchModel(modelName string) bool {
-	return false
-}
-
 // GetThinkingBudget gets the default thinking budget for a model
+// Returns 1024 (minimum) to reduce thinking token usage and improve response speed
 func GetThinkingBudget(modelName string) int {
-	// Default thinking budget for regular models
-	return -1
-}
-
-// ShouldIncludeThoughts always returns true for base models
-func ShouldIncludeThoughts(modelName string) bool {
-	return true
+	// Minimum thinking budget for all models
+	return 128
 }
 
 // GetUserAgent generates User-Agent string matching gemini-cli format
@@ -281,8 +314,8 @@ func GetPlatformString() string {
 }
 
 // GetClientMetadata returns client metadata for API requests
-func GetClientMetadata(projectID string) map[string]interface{} {
-	return map[string]interface{}{
+func GetClientMetadata(projectID string) map[string]any {
+	return map[string]any{
 		"ideType":     "IDE_UNSPECIFIED",
 		"platform":    GetPlatformString(),
 		"pluginType":  "GEMINI",
