@@ -35,7 +35,7 @@ OpenAI-compatible API proxy for Google's Gemini models with web dashboard manage
 - gemini-2.5-flash-image-preview
 - gemini-2.5-flash-image
 
--# `-fake` model variations indicate fake streaming models, make sure stream=True is enabled when using these models
+`-fake` model variations indicate fake streaming models, make sure stream=True is enabled when using these models
 
 ## Quick Start
 
@@ -274,5 +274,6 @@ gcli2apigo/
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
+
 
 For support, please open an issue on GitHub or contact the maintainers.
