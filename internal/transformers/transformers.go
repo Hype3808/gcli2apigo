@@ -384,3 +384,132 @@ func parseDataURI(url string) map[string]interface{} {
 		},
 	}
 }
+
+// AssembleCompleteResponse merges streaming chunks into a single complete response
+// This is used for fake stream mode where chunks are collected internally but returned as a single response
+func AssembleCompleteResponse(chunks []map[string]interface{}, model string) map[string]interface{} {
+	if len(chunks) == 0 {
+		return map[string]interface{}{
+			"id":      uuid.New().String(),
+			"object":  "chat.completion",
+			"created": time.Now().Unix(),
+			"model":   model,
+			"choices": []map[string]interface{}{},
+		}
+	}
+
+	// Accumulate content from all chunks by candidate index
+	candidateMap := make(map[int]*candidateAccumulator)
+
+	for _, chunk := range chunks {
+		candidates, _ := chunk["candidates"].([]interface{})
+		for _, candidate := range candidates {
+			candMap, _ := candidate.(map[string]interface{})
+			index, _ := candMap["index"].(float64)
+			candIndex := int(index)
+
+			// Initialize accumulator for this candidate if not exists
+			if _, exists := candidateMap[candIndex]; !exists {
+				candidateMap[candIndex] = &candidateAccumulator{
+					index:            candIndex,
+					contentParts:     make([]string, 0),
+					reasoningContent: "",
+					finishReason:     "",
+					role:             "",
+				}
+			}
+
+			acc := candidateMap[candIndex]
+
+			// Extract content from this chunk
+			content, _ := candMap["content"].(map[string]interface{})
+			role, _ := content["role"].(string)
+			if role != "" {
+				acc.role = role
+			}
+
+			// Process parts
+			parts, _ := content["parts"].([]interface{})
+			for _, part := range parts {
+				partMap, _ := part.(map[string]interface{})
+
+				// Text parts (may include thinking tokens)
+				if text, ok := partMap["text"].(string); ok {
+					if thought, _ := partMap["thought"].(bool); thought {
+						acc.reasoningContent += text
+					} else {
+						acc.contentParts = append(acc.contentParts, text)
+					}
+					continue
+				}
+
+				// Inline image data -> embed as Markdown data URI
+				if inlineData, ok := partMap["inlineData"].(map[string]interface{}); ok {
+					if data, ok := inlineData["data"].(string); ok {
+						mimeType, _ := inlineData["mimeType"].(string)
+						if mimeType == "" {
+							mimeType = "image/png"
+						}
+						if strings.HasPrefix(mimeType, "image/") {
+							acc.contentParts = append(acc.contentParts, fmt.Sprintf("![image](data:%s;base64,%s)", mimeType, data))
+						}
+					}
+				}
+			}
+
+			// Update finish reason (use the last one)
+			if finishReason, ok := candMap["finishReason"].(string); ok && finishReason != "" {
+				acc.finishReason = finishReason
+			}
+		}
+	}
+
+	// Build choices from accumulated candidates
+	choices := make([]map[string]interface{}, 0)
+	for i := 0; i < len(candidateMap); i++ {
+		if acc, exists := candidateMap[i]; exists {
+			role := acc.role
+			// Map Gemini roles back to OpenAI roles
+			if role == "model" {
+				role = "assistant"
+			}
+
+			// Combine all content parts
+			contentStr := strings.Join(acc.contentParts, "")
+
+			// Build message object
+			message := map[string]interface{}{
+				"role":    role,
+				"content": contentStr,
+			}
+
+			// Add reasoning_content if there are thinking tokens
+			if acc.reasoningContent != "" {
+				message["reasoning_content"] = acc.reasoningContent
+			}
+
+			choices = append(choices, map[string]interface{}{
+				"index":         acc.index,
+				"message":       message,
+				"finish_reason": mapFinishReason(acc.finishReason),
+			})
+		}
+	}
+
+	return map[string]interface{}{
+		"id":      uuid.New().String(),
+		"object":  "chat.completion",
+		"created": time.Now().Unix(),
+		"model":   model,
+		"choices": choices,
+	}
+}
+
+// candidateAccumulator holds accumulated content for a single candidate across chunks
+type candidateAccumulator struct {
+	index            int
+	contentParts     []string
+	reasoningContent string
+	finishReason     string
+	role             string
+}
