@@ -17,15 +17,25 @@ OpenAI-compatible API proxy for Google's Gemini models with web dashboard manage
 ## Supported Models
 
 - gemini-2.5-pro
+- gemini-2.5-pro-fake
 - gemini-2.5-pro-preview-03-25
+- gemini-2.5-pro-preview-03-25-fake
 - gemini-2.5-pro-preview-05-06
+- gemini-2.5-pro-preview-05-06-fake
 - gemini-2.5-pro-preview-06-05
+- gemini-2.5-pro-preview-06-05-fake
 - gemini-flash-latest
+- gemini-flash-latest-fake
 - gemini-2.5-flash
+- gemini-2.5-flash-fake
 - gemini-2.5-flash-preview-05-20
+- gemini-2.5-flash-preview-05-20-fake
 - gemini-2.5-flash-preview-04-17
+- gemini-2.5-flash-preview-04-17-fake
 - gemini-2.5-flash-image-preview
 - gemini-2.5-flash-image
+
+-# `-fake` model variations indicate fake streaming models, make sure stream=True is enabled when using these models
 
 ## Quick Start
 
