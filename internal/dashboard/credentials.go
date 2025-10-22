@@ -252,3 +252,52 @@ func DeleteCredential(projectID string) error {
 	log.Printf("[INFO] Successfully deleted credential file for project: %s", projectID)
 	return nil
 }
+
+// DashboardStats represents statistics for the dashboard
+type DashboardStats struct {
+	TotalProRequests     int       `json:"total_pro_requests"`
+	TotalOverallRequests int       `json:"total_overall_requests"`
+	RPM                  float64   `json:"rpm"`
+	ActiveCredentials    int       `json:"active_credentials"`
+	NextResetTime        time.Time `json:"next_reset_time"`
+}
+
+// GetDashboardStats calculates and returns dashboard statistics
+func GetDashboardStats() DashboardStats {
+	tracker := usage.GetTracker()
+	allUsage := tracker.GetAllUsage()
+	banList := banlist.GetBanList()
+
+	totalProRequests := 0
+	totalOverallRequests := 0
+	activeCredentials := 0
+
+	// Calculate totals and count active credentials
+	for projectID, usageStats := range allUsage {
+		totalProRequests += usageStats.ProModelCount
+		totalOverallRequests += usageStats.OverallCount
+
+		// Count as active if not banned
+		if !banList.IsBanned(projectID) {
+			activeCredentials++
+		}
+	}
+
+	// Calculate RPM (requests per minute since last reset)
+	nextResetTime := tracker.GetNextResetTime()
+	lastResetTime := nextResetTime.Add(-24 * time.Hour)
+	minutesSinceReset := time.Since(lastResetTime).Minutes()
+
+	rpm := 0.0
+	if minutesSinceReset > 0 {
+		rpm = float64(totalOverallRequests) / minutesSinceReset
+	}
+
+	return DashboardStats{
+		TotalProRequests:     totalProRequests,
+		TotalOverallRequests: totalOverallRequests,
+		RPM:                  rpm,
+		ActiveCredentials:    activeCredentials,
+		NextResetTime:        nextResetTime,
+	}
+}

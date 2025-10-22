@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"gcli2apigo/internal/i18n"
 	"html/template"
 	"log"
 	"net/http"
@@ -8,11 +9,11 @@ import (
 
 // loginTemplate is the embedded HTML template for the login page
 var loginTemplate = `<!DOCTYPE html>
-<html lang="en">
+<html lang="{{.Lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Gemini Proxy</title>
+    <title>{{index .T "login.title"}}</title>
     <style>
         * {
             margin: 0;
@@ -203,8 +204,8 @@ var loginTemplate = `<!DOCTYPE html>
     <div class="login-container">
         <div class="logo">
             <div class="logo-icon">✨</div>
-            <h1>Gemini Proxy</h1>
-            <p>Sign in to continue</p>
+            <h1>{{index .T "login.heading"}}</h1>
+            <p>{{index .T "login.subtitle"}}</p>
         </div>
 
         {{if .ErrorMessage}}
@@ -215,19 +216,19 @@ var loginTemplate = `<!DOCTYPE html>
 
         <form method="POST" action="/dashboard/login">
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">{{index .T "login.password"}}</label>
                 <input 
                     type="password" 
                     id="password" 
                     name="password" 
-                    placeholder="Enter password"
+                    placeholder="{{index .T "login.password.placeholder"}}"
                     required 
                     autofocus
                 >
             </div>
 
             <button type="submit" class="btn-login">
-                Sign In
+                {{index .T "login.signin"}}
             </button>
         </form>
     </div>
@@ -236,11 +237,11 @@ var loginTemplate = `<!DOCTYPE html>
 
 // dashboardTemplate is the embedded HTML template for the main dashboard page
 var dashboardTemplate = `<!DOCTYPE html>
-<html lang="en">
+<html lang="{{.Lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Proxy Dashboard</title>
+    <title>{{index .T "dashboard.title"}}</title>
     <style>
         * {
             margin: 0;
@@ -329,7 +330,7 @@ var dashboardTemplate = `<!DOCTYPE html>
         }
 
         .page-header {
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
 
         .page-title {
@@ -343,6 +344,73 @@ var dashboardTemplate = `<!DOCTYPE html>
         .page-subtitle {
             font-size: 14px;
             color: #888;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: #3a3a3a;
+            transform: translateY(-2px);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            margin-bottom: 8px;
+        }
+
+        .stat-footer {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-footer .reset-time {
+            color: #8b5cf6;
+            font-weight: 600;
         }
 
         .actions {
@@ -1115,6 +1183,33 @@ var dashboardTemplate = `<!DOCTYPE html>
                 font-size: 13px;
             }
 
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .stat-label {
+                font-size: 11px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+
+            .stat-footer {
+                font-size: 11px;
+            }
+
             .actions {
                 flex-direction: column;
                 align-items: stretch;
@@ -1260,6 +1355,33 @@ var dashboardTemplate = `<!DOCTYPE html>
 
             .page-subtitle {
                 font-size: 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stat-card {
+                padding: 14px;
+            }
+
+            .stat-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+
+            .stat-label {
+                font-size: 10px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .stat-footer {
+                font-size: 10px;
             }
 
             .actions {
@@ -1462,6 +1584,8 @@ var dashboardTemplate = `<!DOCTYPE html>
         .toast-close:hover {
             color: #333;
         }
+
+        ` + languageSwitcherCSS + `
     </style>
 </head>
 <body>
@@ -1470,18 +1594,68 @@ var dashboardTemplate = `<!DOCTYPE html>
             <div class="logo">
                 <div class="logo-icon">✨</div>
                 <div class="logo-text">
-                    <h1>Gemini Proxy</h1>
-                    <p>Credential Management</p>
+                    <h1>{{index .T "dashboard.heading"}}</h1>
+                    <p>{{index .T "dashboard.subtitle"}}</p>
                 </div>
             </div>
-            <a href="/dashboard/logout" class="btn-logout">Logout</a>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                ` + languageSwitcherHTML + `
+                <a href="/dashboard/logout" class="btn-logout">{{index .T "dashboard.logout"}}</a>
+            </div>
         </div>
     </header>
 
     <div class="container">
         <div class="page-header">
-            <h2 class="page-title">OAuth Credentials</h2>
-            <p class="page-subtitle">Manage your Google Cloud project credentials</p>
+            <h2 class="page-title">{{index .T "dashboard.page.title"}}</h2>
+            <p class="page-subtitle">{{index .T "dashboard.page.subtitle"}}</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🚀</div>
+                    <div class="stat-label">{{index .T "stats.pro.label"}}</div>
+                </div>
+                <div class="stat-value" id="statProRequests">-</div>
+                <div class="stat-footer">
+                    <span>{{index .T "stats.pro.footer"}} <span class="reset-time" id="resetTime1">-</span></span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-label">{{index .T "stats.total.label"}}</div>
+                </div>
+                <div class="stat-value" id="statTotalRequests">-</div>
+                <div class="stat-footer">
+                    <span>{{index .T "stats.total.footer"}} <span class="reset-time" id="resetTime2">-</span></span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-label">{{index .T "stats.rpm.label"}}</div>
+                </div>
+                <div class="stat-value" id="statRPM">-</div>
+                <div class="stat-footer">
+                    <span>{{index .T "stats.rpm.footer"}}</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon">🔑</div>
+                    <div class="stat-label">{{index .T "stats.active.label"}}</div>
+                </div>
+                <div class="stat-value" id="statActiveCredentials">-</div>
+                <div class="stat-footer">
+                    <span>{{index .T "stats.active.footer"}}</span>
+                </div>
+            </div>
         </div>
 
         <div class="actions">
@@ -1489,45 +1663,45 @@ var dashboardTemplate = `<!DOCTYPE html>
                 <div class="dropdown">
                     <button class="btn-add dropdown-toggle" id="addCredentialBtn">
                         <span>+</span>
-                        <span>Add Credential</span>
+                        <span>{{index .T "actions.add"}}</span>
                         <span class="dropdown-arrow">▼</span>
                     </button>
                     <div class="dropdown-menu" id="addCredentialMenu">
                         <a href="/dashboard/oauth/start" class="dropdown-item" id="oauthFlowBtn">
                             <span class="dropdown-icon">🔐</span>
                             <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">OAuth Flow</div>
-                                <div class="dropdown-item-desc">Sign in with Google</div>
+                                <div class="dropdown-item-title">{{index .T "add.oauth.title"}}</div>
+                                <div class="dropdown-item-desc">{{index .T "add.oauth.desc"}}</div>
                             </div>
                         </a>
                         <button class="dropdown-item" id="uploadCredentialBtn">
                             <span class="dropdown-icon">📁</span>
                             <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">Upload Files</div>
-                                <div class="dropdown-item-desc">JSON or ZIP files</div>
+                                <div class="dropdown-item-title">{{index .T "add.upload.title"}}</div>
+                                <div class="dropdown-item-desc">{{index .T "add.upload.desc"}}</div>
                             </div>
                         </button>
                     </div>
                 </div>
-                <button class="btn-select-all" id="selectAllBtn">
+                <button class="btn-select-all" id="selectAllBtn" data-select-text="{{index .T "actions.select.all"}}" data-deselect-text="{{index .T "actions.deselect.all"}}">
                     <span>☑</span>
-                    <span>Select All</span>
+                    <span id="selectAllText">{{index .T "actions.select.all"}}</span>
                 </button>
                 <button class="btn-bulk-ban" id="bulkBanBtn">
                     <span>🚫</span>
-                    <span>Ban Selected</span>
+                    <span>{{index .T "actions.ban.selected"}}</span>
                 </button>
                 <button class="btn-bulk-unban" id="bulkUnbanBtn">
                     <span>✓</span>
-                    <span>Unban Selected</span>
+                    <span>{{index .T "actions.unban.selected"}}</span>
                 </button>
                 <button class="btn-bulk-delete" id="bulkDeleteBtn">
                     <span>×</span>
-                    <span>Delete Selected</span>
+                    <span>{{index .T "actions.delete.selected"}}</span>
                 </button>
             </div>
             <div class="selection-info" id="selectionInfo">
-                <span id="selectedCount">0</span> selected
+                <span id="selectedCount">0</span> {{index .T "actions.selected.count"}}
             </div>
         </div>
 
@@ -1535,21 +1709,21 @@ var dashboardTemplate = `<!DOCTYPE html>
         <div class="upload-modal" id="uploadModal">
             <div class="upload-modal-content">
                 <div class="upload-modal-header">
-                    <h3>Upload Credentials</h3>
+                    <h3>{{index .T "upload.title"}}</h3>
                     <button class="upload-modal-close" id="uploadModalClose">×</button>
                 </div>
                 <div class="upload-modal-body">
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-icon">📤</div>
                         <div class="upload-text">
-                            <p class="upload-title">Drag and drop files here</p>
-                            <p class="upload-subtitle">or click to browse</p>
+                            <p class="upload-title">{{index .T "upload.drag"}}</p>
+                            <p class="upload-subtitle">{{index .T "upload.or"}}</p>
                         </div>
                         <input type="file" id="fileInput" accept=".json,.zip" multiple hidden>
-                        <button class="btn-browse" id="browseBtn">Browse Files</button>
+                        <button class="btn-browse" id="browseBtn">{{index .T "upload.browse"}}</button>
                     </div>
                     <div class="upload-info">
-                        <p>Supported formats: <strong>.json</strong> (single credential) or <strong>.zip</strong> (multiple credentials)</p>
+                        <p>{{index .T "upload.info"}} <strong>{{index .T "upload.json"}}</strong> {{index .T "upload.json.desc"}} {{index .T "upload.or"}} <strong>{{index .T "upload.zip"}}</strong> {{index .T "upload.zip.desc"}}</p>
                     </div>
                     <div class="upload-files-list" id="uploadFilesList"></div>
                 </div>
@@ -1560,7 +1734,7 @@ var dashboardTemplate = `<!DOCTYPE html>
         <div class="credentials-grid">
             {{range .Credentials}}
             <div class="credential-card {{if .IsBanned}}banned{{end}}" data-project-id="{{.ProjectID}}" data-banned="{{.IsBanned}}">
-                {{if .IsBanned}}<div class="banned-badge">Banned</div>{{end}}
+                {{if .IsBanned}}<div class="banned-badge">{{index $.T "credential.banned"}}</div>{{end}}
                 <div class="credential-header">
                     <input type="checkbox" class="credential-checkbox" data-project-id="{{.ProjectID}}">
                     <div class="credential-icon">🔑</div>
@@ -1572,14 +1746,14 @@ var dashboardTemplate = `<!DOCTYPE html>
                 {{if gt .LastErrorCode 0}}
                 <div class="error-status">
                     <span class="error-badge">{{.LastErrorCode}}</span>
-                    <span class="error-text">Last API Error</span>
+                    <span class="error-text">{{index $.T "credential.error"}}</span>
                 </div>
                 {{end}}
                 
                 <div class="credential-usage">
                     <div class="usage-item">
                         <div class="usage-label">
-                            <span>Pro Models</span>
+                            <span>{{index $.T "credential.pro.models"}}</span>
                             <span class="usage-count {{if ge .ProModelCount 90}}danger{{else if ge .ProModelCount 70}}warning{{end}}">
                                 {{.ProModelCount}} / {{.ProModelLimit}}
                             </span>
@@ -1593,7 +1767,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                     
                     <div class="usage-item">
                         <div class="usage-label">
-                            <span>All Models</span>
+                            <span>{{index $.T "credential.all.models"}}</span>
                             <span class="usage-count {{if ge .OverallCount 900}}danger{{else if ge .OverallCount 700}}warning{{end}}">
                                 {{.OverallCount}} / {{.OverallLimit}}
                             </span>
@@ -1609,15 +1783,15 @@ var dashboardTemplate = `<!DOCTYPE html>
                 <div class="credential-actions">
                     {{if .IsBanned}}
                     <button class="btn-unban-single" data-project-id="{{.ProjectID}}">
-                        Unban
+                        {{index $.T "credential.unban"}}
                     </button>
                     {{else}}
                     <button class="btn-ban-single" data-project-id="{{.ProjectID}}">
-                        Ban
+                        {{index $.T "credential.ban"}}
                     </button>
                     {{end}}
                     <button class="btn-delete-single" data-project-id="{{.ProjectID}}">
-                        Delete
+                        {{index $.T "credential.delete"}}
                     </button>
                 </div>
             </div>
@@ -1626,8 +1800,8 @@ var dashboardTemplate = `<!DOCTYPE html>
         {{else}}
         <div class="empty-state">
             <div class="empty-state-icon">📭</div>
-            <h2>No Credentials Found</h2>
-            <p>You haven't added any OAuth credentials yet.<br>Click the button above to get started.</p>
+            <h2>{{index .T "empty.title"}}</h2>
+            <p>{{index .T "empty.message"}}</p>
         </div>
         {{end}}
     </div>
@@ -1648,6 +1822,8 @@ var dashboardTemplate = `<!DOCTYPE html>
     </div>
 
     <script>
+        ` + languageSwitcherJS + `
+
         // Toast notification system
         const toast = {
             element: document.getElementById('toast'),
@@ -1730,12 +1906,15 @@ var dashboardTemplate = `<!DOCTYPE html>
             const allCheckboxes = document.querySelectorAll('.credential-checkbox');
             const allSelected = allCheckboxes.length > 0 && count === allCheckboxes.length;
             
+            const selectText = selectAllBtn.getAttribute('data-select-text');
+            const deselectText = selectAllBtn.getAttribute('data-deselect-text');
+            
             if (allSelected) {
                 selectAllBtn.classList.add('all-selected');
-                selectAllBtn.innerHTML = '<span>☑</span><span>Deselect All</span>';
+                document.getElementById('selectAllText').textContent = deselectText;
             } else {
                 selectAllBtn.classList.remove('all-selected');
-                selectAllBtn.innerHTML = '<span>☐</span><span>Select All</span>';
+                document.getElementById('selectAllText').textContent = selectText;
             }
         }
 
@@ -2130,8 +2309,40 @@ var dashboardTemplate = `<!DOCTYPE html>
             });
         }
 
+        // Fetch and update dashboard stats
+        function updateDashboardStats() {
+            fetch('/dashboard/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stat values
+                    document.getElementById('statProRequests').textContent = data.total_pro_requests.toLocaleString();
+                    document.getElementById('statTotalRequests').textContent = data.total_overall_requests.toLocaleString();
+                    document.getElementById('statRPM').textContent = data.rpm.toFixed(2);
+                    document.getElementById('statActiveCredentials').textContent = data.active_credentials.toLocaleString();
+                    
+                    // Format reset time
+                    const resetTime = new Date(data.next_reset_time);
+                    const timeStr = resetTime.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false 
+                    });
+                    document.getElementById('resetTime1').textContent = timeStr;
+                    document.getElementById('resetTime2').textContent = timeStr;
+                })
+                .catch(error => {
+                    console.error('Failed to fetch dashboard stats:', error);
+                });
+        }
+
         // Attach event listeners
         document.addEventListener('DOMContentLoaded', () => {
+            // Load dashboard stats
+            updateDashboardStats();
+            
+            // Refresh stats every 30 seconds
+            setInterval(updateDashboardStats, 30000);
+            
             // Initialize progress bars
             initializeProgressBars();
             // Checkbox listeners
@@ -2845,8 +3056,8 @@ var oauthCallbackTemplate = `<!DOCTYPE html>
 </html>`
 
 // RenderLogin renders the login page with an optional error message
-func RenderLogin(w http.ResponseWriter, errorMsg string) {
-	log.Printf("[DEBUG] Rendering login page (error: %v)", errorMsg != "")
+func RenderLogin(w http.ResponseWriter, errorMsg string, lang i18n.Language) {
+	log.Printf("[DEBUG] Rendering login page (error: %v, lang: %s)", errorMsg != "", lang)
 
 	tmpl, err := template.New("login").Parse(loginTemplate)
 	if err != nil {
@@ -2857,8 +3068,12 @@ func RenderLogin(w http.ResponseWriter, errorMsg string) {
 
 	data := struct {
 		ErrorMessage string
+		Lang         string
+		T            map[string]string
 	}{
 		ErrorMessage: errorMsg,
+		Lang:         string(lang),
+		T:            i18n.GetAllTranslations(lang),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -2872,8 +3087,8 @@ func RenderLogin(w http.ResponseWriter, errorMsg string) {
 }
 
 // RenderDashboard renders the main dashboard page with credential information
-func RenderDashboard(w http.ResponseWriter, credentials []CredentialInfo) {
-	log.Printf("[DEBUG] Rendering dashboard page with %d credentials", len(credentials))
+func RenderDashboard(w http.ResponseWriter, credentials []CredentialInfo, lang i18n.Language) {
+	log.Printf("[DEBUG] Rendering dashboard page with %d credentials (lang: %s)", len(credentials), lang)
 
 	tmpl, err := template.New("dashboard").Parse(dashboardTemplate)
 	if err != nil {
@@ -2884,8 +3099,12 @@ func RenderDashboard(w http.ResponseWriter, credentials []CredentialInfo) {
 
 	data := struct {
 		Credentials []CredentialInfo
+		Lang        string
+		T           map[string]string
 	}{
 		Credentials: credentials,
+		Lang:        string(lang),
+		T:           i18n.GetAllTranslations(lang),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

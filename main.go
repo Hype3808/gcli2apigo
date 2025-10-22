@@ -13,6 +13,7 @@ import (
 	"gcli2apigo/internal/auth"
 	"gcli2apigo/internal/banlist"
 	"gcli2apigo/internal/dashboard"
+	"gcli2apigo/internal/i18n"
 	"gcli2apigo/internal/routes"
 	"gcli2apigo/internal/usage"
 
@@ -74,6 +75,13 @@ func main() {
 	// Dashboard API routes for banning/unbanning credentials
 	mux.HandleFunc("/dashboard/api/credentials/ban", dashboardHandlers.RequireAuth(dashboardHandlers.HandleBanCredential))
 	mux.HandleFunc("/dashboard/api/credentials/unban", dashboardHandlers.RequireAuth(dashboardHandlers.HandleUnbanCredential))
+
+	// Dashboard API route for stats
+	mux.HandleFunc("/dashboard/api/stats", dashboardHandlers.RequireAuth(dashboardHandlers.HandleDashboardStats))
+
+	// Dashboard API routes for language
+	mux.HandleFunc("/dashboard/api/language", dashboardHandlers.HandleSetLanguage)
+	mux.HandleFunc("/dashboard/api/translations", dashboardHandlers.HandleGetTranslations)
 
 	// Dashboard API route for deleting specific credentials
 	// Pattern: /dashboard/api/credentials/{project_id}
@@ -137,7 +145,8 @@ func handleRoot(w http.ResponseWriter, r *http.Request, dashboardHandlers *dashb
 	cookie, err := r.Cookie("session_id")
 	if err != nil || cookie.Value == "" || !dashboardHandlers.GetSessionManager().ValidateSession(cookie.Value) {
 		// Not authenticated, show login page
-		dashboard.RenderLogin(w, "")
+		lang := i18n.GetLanguageFromRequest(r)
+		dashboard.RenderLogin(w, "", lang)
 		return
 	}
 

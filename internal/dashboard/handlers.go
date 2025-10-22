@@ -10,6 +10,7 @@ import (
 	"gcli2apigo/internal/auth"
 	"gcli2apigo/internal/banlist"
 	"gcli2apigo/internal/config"
+	"gcli2apigo/internal/i18n"
 )
 
 // DashboardHandlers manages all dashboard-related HTTP handlers
@@ -75,7 +76,8 @@ func (dh *DashboardHandlers) HandleLogin(w http.ResponseWriter, r *http.Request)
 			})
 		} else {
 			// Render login page with error message
-			RenderLogin(w, "Invalid password. Please try again.")
+			lang := i18n.GetLanguageFromRequest(r)
+			RenderLogin(w, i18n.T(lang, "login.error.invalid"), lang)
 		}
 		return
 	}
@@ -177,7 +179,8 @@ func (dh *DashboardHandlers) redirectToLogin(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Render login page for browser requests
-	RenderLogin(w, "Please log in to continue.")
+	lang := i18n.GetLanguageFromRequest(r)
+	RenderLogin(w, "", lang)
 }
 
 // HandleListCredentials returns a JSON list of all stored credentials
@@ -280,6 +283,9 @@ func (dh *DashboardHandlers) HandleDashboard(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Get language from request
+	lang := i18n.GetLanguageFromRequest(r)
+
 	// List all credentials
 	credentials, err := ListCredentials()
 	if err != nil {
@@ -289,7 +295,77 @@ func (dh *DashboardHandlers) HandleDashboard(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Render dashboard with credentials
-	RenderDashboard(w, credentials)
+	RenderDashboard(w, credentials, lang)
+}
+
+// HandleDashboardStats returns dashboard statistics as JSON
+func (dh *DashboardHandlers) HandleDashboardStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	stats := GetDashboardStats()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
+// HandleSetLanguage handles language switching
+func (dh *DashboardHandlers) HandleSetLanguage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate language
+	lang := i18n.Language(req.Language)
+	if _, exists := i18n.Translations[lang]; !exists {
+		http.Error(w, "Unsupported language", http.StatusBadRequest)
+		return
+	}
+
+	// Set language cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "lang",
+		Value:    string(lang),
+		Path:     "/",
+		MaxAge:   365 * 24 * 60 * 60, // 1 year
+		HttpOnly: false,              // Allow JavaScript access
+		Secure:   isSecureContext(r),
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"language": string(lang),
+	})
+}
+
+// HandleGetTranslations returns all translations for the current language
+func (dh *DashboardHandlers) HandleGetTranslations(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	lang := i18n.GetLanguageFromRequest(r)
+	translations := i18n.GetAllTranslations(lang)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"language":     string(lang),
+		"translations": translations,
+	})
 }
 
 // GetSessionManager returns the session manager instance

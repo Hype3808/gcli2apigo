@@ -200,6 +200,29 @@ func (ca *ChunkAccumulator) mergeChunks() map[string]interface{} {
 	return merged
 }
 
+// isFakeStreamingAllowed checks if a model supports fake streaming
+// Only gemini-2.5-pro (and its preview models) and gemini flash models (excluding gemini-flash-image) are allowed
+func isFakeStreamingAllowed(modelName string) bool {
+	// Remove "models/" prefix if present
+	modelName = strings.TrimPrefix(modelName, "models/")
+
+	// Allow gemini-2.5-pro and its preview models
+	if strings.HasPrefix(modelName, "gemini-2.5-pro") {
+		return true
+	}
+
+	// Allow gemini flash models, but exclude gemini-flash-image models
+	if strings.Contains(modelName, "gemini-flash") || strings.Contains(modelName, "gemini-2.5-flash") {
+		// Exclude gemini-flash-image models
+		if strings.Contains(modelName, "flash-image") {
+			return false
+		}
+		return true
+	}
+
+	return false
+}
+
 // KeepAliveManager manages periodic keep-alive signals during fake stream collection
 type KeepAliveManager struct {
 	interval time.Duration
@@ -299,6 +322,21 @@ func HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		modelName = strings.TrimSuffix(modelName, "-fake")
 		request.Model = modelName
 		log.Printf("Detected fake stream mode, stripped model name: %s", modelName)
+
+		// Validate that fake streaming is only allowed for specific models
+		if !isFakeStreamingAllowed(modelName) {
+			errorData := map[string]interface{}{
+				"error": map[string]interface{}{
+					"message": fmt.Sprintf("Fake streaming is not supported for model: %s. Only gemini-2.5-pro (and preview models) and gemini flash models (excluding gemini-flash-image) support fake streaming.", modelName),
+					"type":    "invalid_request_error",
+					"code":    400,
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorData)
+			return
+		}
 	}
 
 	// Transform OpenAI request to Gemini format
@@ -735,32 +773,34 @@ func HandleListModels(w http.ResponseWriter, r *http.Request) {
 			"parent": nil,
 		})
 
-		// Add -fake variant with same metadata
-		fakeModelID := modelID + "-fake"
-		openaiModels = append(openaiModels, map[string]interface{}{
-			"id":       fakeModelID,
-			"object":   "model",
-			"created":  1677610602,
-			"owned_by": "google",
-			"permission": []map[string]interface{}{
-				{
-					"id":                   "modelperm-" + strings.ReplaceAll(fakeModelID, "/", "-"),
-					"object":               "model_permission",
-					"created":              1677610602,
-					"allow_create_engine":  false,
-					"allow_sampling":       true,
-					"allow_logprobs":       false,
-					"allow_search_indices": false,
-					"allow_view":           true,
-					"allow_fine_tuning":    false,
-					"organization":         "*",
-					"group":                nil,
-					"is_blocking":          false,
+		// Add -fake variant only for models that support fake streaming
+		if isFakeStreamingAllowed(modelID) {
+			fakeModelID := modelID + "-fake"
+			openaiModels = append(openaiModels, map[string]interface{}{
+				"id":       fakeModelID,
+				"object":   "model",
+				"created":  1677610602,
+				"owned_by": "google",
+				"permission": []map[string]interface{}{
+					{
+						"id":                   "modelperm-" + strings.ReplaceAll(fakeModelID, "/", "-"),
+						"object":               "model_permission",
+						"created":              1677610602,
+						"allow_create_engine":  false,
+						"allow_sampling":       true,
+						"allow_logprobs":       false,
+						"allow_search_indices": false,
+						"allow_view":           true,
+						"allow_fine_tuning":    false,
+						"organization":         "*",
+						"group":                nil,
+						"is_blocking":          false,
+					},
 				},
-			},
-			"root":   fakeModelID,
-			"parent": nil,
-		})
+				"root":   fakeModelID,
+				"parent": nil,
+			})
+		}
 	}
 
 	log.Printf("Returning %d models (including -fake variants)", len(openaiModels))
