@@ -646,6 +646,33 @@ func handleStreamingChatCompletion(w http.ResponseWriter, r *http.Request, reque
 	responseID := "chatcmpl-" + uuid.New().String()
 	log.Printf("Starting streaming response: %s", responseID)
 
+	// Buffered streaming with timed flush
+	// Buffer size: 8KB for accumulating chunks
+	// Flush interval: 50ms for optimal TTFW and responsiveness
+	buffer := make([]byte, 0, 8*1024)
+	flushTicker := time.NewTicker(50 * time.Millisecond)
+	defer flushTicker.Stop()
+
+	flushBuffer := func() {
+		if len(buffer) > 0 {
+			w.Write(buffer)
+			flusher.Flush()
+			buffer = buffer[:0] // Reset buffer
+		}
+	}
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-flushTicker.C:
+				flushBuffer()
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	for chunk := range streamChan {
 		var geminiChunk map[string]interface{}
 		if err := json.Unmarshal([]byte(chunk), &geminiChunk); err != nil {
@@ -658,17 +685,24 @@ func handleStreamingChatCompletion(w http.ResponseWriter, r *http.Request, reque
 				"error": errObj,
 			}
 			jsonData, _ := json.Marshal(errorData)
-			fmt.Fprintf(w, "data: %s\n\n", string(jsonData))
-			flusher.Flush()
+			buffer = append(buffer, []byte(fmt.Sprintf("data: %s\n\n", string(jsonData)))...)
+			flushBuffer()
 			break
 		}
 
 		// Transform to OpenAI format
 		openaiChunk := transformers.GeminiStreamChunkToOpenAI(geminiChunk, request.Model, responseID)
 		jsonData, _ := json.Marshal(openaiChunk)
-		fmt.Fprintf(w, "data: %s\n\n", string(jsonData))
-		flusher.Flush()
+		buffer = append(buffer, []byte(fmt.Sprintf("data: %s\n\n", string(jsonData)))...)
+
+		// Flush if buffer exceeds 8KB
+		if len(buffer) >= 8*1024 {
+			flushBuffer()
+		}
 	}
+
+	done <- true
+	flushBuffer() // Final flush
 
 	// Send the final [DONE] marker
 	fmt.Fprintf(w, "data: [DONE]\n\n")

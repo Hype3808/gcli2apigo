@@ -264,7 +264,7 @@ func GeminiStreamChunkToOpenAI(geminiChunk map[string]interface{}, model string,
 			}
 		}
 
-		contentStr := strings.Join(contentParts, "")
+		contentStr := strings.Join(contentParts, "\n\n")
 
 		// Build delta object
 		delta := make(map[string]interface{})

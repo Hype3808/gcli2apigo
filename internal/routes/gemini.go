@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"gcli2apigo/internal/auth"
 	"gcli2apigo/internal/client"
@@ -160,10 +161,44 @@ func handleGeminiStreamingResponse(w http.ResponseWriter, result interface{}) {
 		return
 	}
 
-	for chunk := range streamChan {
-		fmt.Fprintf(w, "data: %s\n\n", chunk)
-		flusher.Flush()
+	// Buffered streaming with timed flush
+	// Buffer size: 8KB for accumulating chunks
+	// Flush interval: 50ms for optimal TTFW and responsiveness
+	buffer := make([]byte, 0, 8*1024)
+	flushTicker := time.NewTicker(50 * time.Millisecond)
+	defer flushTicker.Stop()
+
+	flushBuffer := func() {
+		if len(buffer) > 0 {
+			w.Write(buffer)
+			flusher.Flush()
+			buffer = buffer[:0] // Reset buffer
+		}
 	}
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-flushTicker.C:
+				flushBuffer()
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	for chunk := range streamChan {
+		buffer = append(buffer, []byte(fmt.Sprintf("data: %s\n\n", chunk))...)
+
+		// Flush if buffer exceeds 8KB
+		if len(buffer) >= 8*1024 {
+			flushBuffer()
+		}
+	}
+
+	done <- true
+	flushBuffer() // Final flush
 }
 
 func handleGeminiNonStreamingResponse(w http.ResponseWriter, result interface{}, modelName string) {

@@ -35,10 +35,11 @@ func createHTTPClient() *http.Client {
 		// Force HTTP/2 for all requests
 		ForceAttemptHTTP2: true,
 
-		// Disable buffering for streaming responses
-		// This ensures data flows immediately without intermediate buffering
-		WriteBufferSize: 0,
-		ReadBufferSize:  0,
+		// Optimized buffer sizes for streaming
+		// 64KB write buffer for efficient chunk accumulation
+		WriteBufferSize: 64 * 1024,
+		// 256KB read buffer for efficient response parsing
+		ReadBufferSize: 256 * 1024,
 	}
 
 	// Configure HTTP/2 explicitly
