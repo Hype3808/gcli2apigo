@@ -48,7 +48,9 @@ func createHTTPClient() *http.Client {
 	}
 
 	return &http.Client{
-		Timeout:   60 * time.Second,
+		// Increased timeout to handle long-running requests with large responses
+		// Streaming responses can take several minutes for maximum token outputs
+		Timeout:   10 * time.Minute,
 		Transport: transport,
 	}
 }

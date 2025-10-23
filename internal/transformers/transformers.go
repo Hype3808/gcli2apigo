@@ -2,6 +2,7 @@ package transformers
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -83,6 +84,16 @@ func OpenAIRequestToGemini(req *models.OpenAIChatCompletionRequest) map[string]i
 	}
 	if req.MaxTokens != nil {
 		generationConfig["maxOutputTokens"] = *req.MaxTokens
+		if config.IsDebugEnabled() {
+			log.Printf("[DEBUG] Using client-specified maxOutputTokens: %d", *req.MaxTokens)
+		}
+	} else {
+		// Set a high default to prevent truncation when client doesn't specify max_tokens
+		// Gemini models support up to 65,535 tokens output
+		generationConfig["maxOutputTokens"] = 65535
+		if config.IsDebugEnabled() {
+			log.Printf("[DEBUG] No max_tokens specified, using default maxOutputTokens: 65535")
+		}
 	}
 	if req.Stop != nil {
 		switch stop := req.Stop.(type) {
@@ -253,7 +264,7 @@ func GeminiStreamChunkToOpenAI(geminiChunk map[string]interface{}, model string,
 			}
 		}
 
-		contentStr := strings.Join(contentParts, "\n\n")
+		contentStr := strings.Join(contentParts, "")
 
 		// Build delta object
 		delta := make(map[string]interface{})
