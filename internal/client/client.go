@@ -341,7 +341,11 @@ func handleStreamingResponse(resp *http.Response) (chan string, error) {
 		defer close(streamChan)
 		defer resp.Body.Close()
 
+		// Use larger buffer for scanner to handle large chunks
 		scanner := bufio.NewScanner(resp.Body)
+		buf := make([]byte, 64*1024)
+		scanner.Buffer(buf, 256*1024)
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			// Use CutPrefix to avoid double prefix check and allocation

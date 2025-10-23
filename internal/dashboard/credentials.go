@@ -28,6 +28,7 @@ type CredentialInfo struct {
 	NextResetTime time.Time `json:"next_reset_time"`
 	IsBanned      bool      `json:"is_banned"`
 	LastErrorCode int       `json:"last_error_code"` // HTTP error code from last API request, 0 if successful
+	Expiry        time.Time `json:"expiry"`          // OAuth token expiry time
 }
 
 // ListCredentials scans the oauth_creds directory and returns information about all credential files
@@ -128,6 +129,17 @@ func GetCredentialInfo(filePath string) (*CredentialInfo, error) {
 	// Get last error code
 	lastErrorCode := tracker.GetLastErrorCode(projectID)
 
+	// Extract expiry time
+	var expiry time.Time
+	if expiryStr, ok := data["expiry"].(string); ok && expiryStr != "" {
+		// Try to parse the expiry time
+		if parsedExpiry, err := time.Parse(time.RFC3339, expiryStr); err == nil {
+			expiry = parsedExpiry
+		} else {
+			log.Printf("[WARN] Failed to parse expiry time for %s: %v", projectID, err)
+		}
+	}
+
 	credInfo := &CredentialInfo{
 		ProjectID:     projectID,
 		ClientID:      clientID,
@@ -141,6 +153,7 @@ func GetCredentialInfo(filePath string) (*CredentialInfo, error) {
 		NextResetTime: tracker.GetNextResetTime(),
 		IsBanned:      isBanned,
 		LastErrorCode: lastErrorCode,
+		Expiry:        expiry,
 	}
 
 	log.Printf("[DEBUG] Successfully extracted credential info for project: %s (usage: %d/%d pro, %d/%d overall)",

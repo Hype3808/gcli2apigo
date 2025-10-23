@@ -646,32 +646,55 @@ func handleStreamingChatCompletion(w http.ResponseWriter, r *http.Request, reque
 	responseID := "chatcmpl-" + uuid.New().String()
 	log.Printf("Starting streaming response: %s", responseID)
 
-	// Buffered streaming with timed flush
-	// Buffer size: 8KB for accumulating chunks
-	// Flush interval: 50ms for optimal TTFW and responsiveness
-	buffer := make([]byte, 0, 8*1024)
-	flushTicker := time.NewTicker(50 * time.Millisecond)
-	defer flushTicker.Stop()
+	// Smart buffering: accumulate text and flush on sentence boundaries or time
+	var textAccumulator strings.Builder
+	textAccumulator.Grow(8 * 1024) // Pre-allocate 8KB
 
-	flushBuffer := func() {
-		if len(buffer) > 0 {
-			w.Write(buffer)
-			flusher.Flush()
-			buffer = buffer[:0] // Reset buffer
+	lastFlushTime := time.Now()
+	flushInterval := 50 * time.Millisecond
+
+	// Sentence boundary detection
+	isSentenceBoundary := func(text string) bool {
+		if len(text) == 0 {
+			return false
 		}
+		// Check last rune for sentence boundaries (supports Unicode)
+		runes := []rune(text)
+		lastRune := runes[len(runes)-1]
+		return lastRune == '.' || lastRune == '!' || lastRune == '?' ||
+			lastRune == '。' || lastRune == '！' || lastRune == '？' ||
+			lastRune == '\n'
 	}
 
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case <-flushTicker.C:
-				flushBuffer()
-			case <-done:
-				return
-			}
+	sendAccumulatedText := func() {
+		if textAccumulator.Len() == 0 {
+			return
 		}
-	}()
+
+		// Create OpenAI chunk with accumulated text
+		openaiChunk := map[string]interface{}{
+			"id":      responseID,
+			"object":  "chat.completion.chunk",
+			"created": time.Now().Unix(),
+			"model":   request.Model,
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"delta": map[string]interface{}{
+						"content": textAccumulator.String(),
+					},
+					"finish_reason": nil,
+				},
+			},
+		}
+
+		jsonData, _ := json.Marshal(openaiChunk)
+		fmt.Fprintf(w, "data: %s\n\n", string(jsonData))
+		flusher.Flush()
+
+		textAccumulator.Reset()
+		lastFlushTime = time.Now()
+	}
 
 	for chunk := range streamChan {
 		var geminiChunk map[string]interface{}
@@ -681,28 +704,72 @@ func handleStreamingChatCompletion(w http.ResponseWriter, r *http.Request, reque
 
 		// Check if this is an error chunk
 		if errObj, ok := geminiChunk["error"]; ok {
+			sendAccumulatedText() // Flush any pending text
 			errorData := map[string]interface{}{
 				"error": errObj,
 			}
 			jsonData, _ := json.Marshal(errorData)
-			buffer = append(buffer, []byte(fmt.Sprintf("data: %s\n\n", string(jsonData)))...)
-			flushBuffer()
+			fmt.Fprintf(w, "data: %s\n\n", string(jsonData))
+			flusher.Flush()
 			break
 		}
 
-		// Transform to OpenAI format
-		openaiChunk := transformers.GeminiStreamChunkToOpenAI(geminiChunk, request.Model, responseID)
-		jsonData, _ := json.Marshal(openaiChunk)
-		buffer = append(buffer, []byte(fmt.Sprintf("data: %s\n\n", string(jsonData)))...)
+		// Extract text from Gemini chunk
+		candidates, _ := geminiChunk["candidates"].([]interface{})
+		for _, candidate := range candidates {
+			candMap, _ := candidate.(map[string]interface{})
+			content, _ := candMap["content"].(map[string]interface{})
+			parts, _ := content["parts"].([]interface{})
 
-		// Flush if buffer exceeds 8KB
-		if len(buffer) >= 8*1024 {
-			flushBuffer()
+			for _, part := range parts {
+				partMap, _ := part.(map[string]interface{})
+				if text, ok := partMap["text"].(string); ok {
+					// Skip thinking tokens
+					if thought, _ := partMap["thought"].(bool); !thought {
+						textAccumulator.WriteString(text)
+					}
+				}
+			}
+
+			// Check finish reason
+			if finishReason, ok := candMap["finishReason"].(string); ok && finishReason != "" {
+				sendAccumulatedText() // Flush before sending finish
+
+				// Send finish chunk
+				finishChunk := map[string]interface{}{
+					"id":      responseID,
+					"object":  "chat.completion.chunk",
+					"created": time.Now().Unix(),
+					"model":   request.Model,
+					"choices": []map[string]interface{}{
+						{
+							"index":         0,
+							"delta":         map[string]interface{}{},
+							"finish_reason": transformers.MapFinishReason(finishReason),
+						},
+					},
+				}
+				jsonData, _ := json.Marshal(finishChunk)
+				fmt.Fprintf(w, "data: %s\n\n", string(jsonData))
+				flusher.Flush()
+			}
+		}
+
+		// Flush conditions:
+		// 1. Sentence boundary detected
+		// 2. Time interval exceeded (50ms)
+		// 3. Buffer size exceeded (8KB safety limit)
+		currentText := textAccumulator.String()
+		timeSinceFlush := time.Since(lastFlushTime)
+
+		if isSentenceBoundary(currentText) ||
+			timeSinceFlush >= flushInterval ||
+			textAccumulator.Len() >= 8*1024 {
+			sendAccumulatedText()
 		}
 	}
 
-	done <- true
-	flushBuffer() // Final flush
+	sendAccumulatedText() // Final flush
 
 	// Send the final [DONE] marker
 	fmt.Fprintf(w, "data: [DONE]\n\n")

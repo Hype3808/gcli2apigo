@@ -817,6 +817,50 @@ var dashboardTemplate = `<!DOCTYPE html>
             letter-spacing: -0.3px;
         }
 
+        .credential-expiry {
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: #2a2a2a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .credential-expiry.expired {
+            background: rgba(220, 38, 38, 0.1);
+            border-left: 3px solid #dc2626;
+        }
+
+        .credential-expiry.expiring-soon {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 3px solid #f59e0b;
+        }
+
+        .expiry-icon {
+            font-size: 14px;
+        }
+
+        .expiry-label {
+            color: #888;
+            font-weight: 600;
+        }
+
+        .expiry-time {
+            color: #8b5cf6;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .credential-expiry.expired .expiry-time {
+            color: #dc2626;
+        }
+
+        .credential-expiry.expiring-soon .expiry-time {
+            color: #f59e0b;
+        }
+
         .credential-usage {
             margin-top: 12px;
         }
@@ -1743,6 +1787,14 @@ var dashboardTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
                 
+                {{if not .Expiry.IsZero}}
+                <div class="credential-expiry" data-expiry="{{.Expiry.Format "2006-01-02T15:04:05Z07:00"}}">
+                    <span class="expiry-icon">⏰</span>
+                    <span class="expiry-label">Expires:</span>
+                    <span class="expiry-time">{{.Expiry.Format "2006-01-02 15:04:05"}}</span>
+                </div>
+                {{end}}
+                
                 {{if gt .LastErrorCode 0}}
                 <div class="error-status">
                     <span class="error-badge">{{.LastErrorCode}}</span>
@@ -2141,6 +2193,46 @@ var dashboardTemplate = `<!DOCTYPE html>
             });
         }
 
+        // Update expiry times and status
+        function updateExpiryTimes() {
+            const expiryElements = document.querySelectorAll('.credential-expiry');
+            const now = new Date();
+            
+            expiryElements.forEach(element => {
+                const expiryStr = element.getAttribute('data-expiry');
+                if (!expiryStr) return;
+                
+                const expiryDate = new Date(expiryStr);
+                const timeUntilExpiry = expiryDate - now;
+                const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60);
+                
+                // Update status classes
+                element.classList.remove('expired', 'expiring-soon');
+                
+                if (timeUntilExpiry < 0) {
+                    element.classList.add('expired');
+                    const timeLabel = element.querySelector('.expiry-label');
+                    if (timeLabel) timeLabel.textContent = 'Expired:';
+                } else if (hoursUntilExpiry < 24) {
+                    element.classList.add('expiring-soon');
+                    const timeLabel = element.querySelector('.expiry-label');
+                    if (timeLabel) timeLabel.textContent = 'Expires in:';
+                    
+                    // Show relative time for expiring soon
+                    const timeSpan = element.querySelector('.expiry-time');
+                    if (timeSpan && hoursUntilExpiry < 24) {
+                        const hours = Math.floor(hoursUntilExpiry);
+                        const minutes = Math.floor((hoursUntilExpiry - hours) * 60);
+                        if (hours > 0) {
+                            timeSpan.textContent = hours + 'h ' + minutes + 'm';
+                        } else {
+                            timeSpan.textContent = minutes + 'm';
+                        }
+                    }
+                }
+            });
+        }
+
         // Dropdown functionality
         const dropdown = document.querySelector('.dropdown');
         const dropdownToggle = document.getElementById('addCredentialBtn');
@@ -2345,6 +2437,10 @@ var dashboardTemplate = `<!DOCTYPE html>
             
             // Initialize progress bars
             initializeProgressBars();
+            
+            // Initialize and update expiry times
+            updateExpiryTimes();
+            setInterval(updateExpiryTimes, 60000); // Update every minute
             // Checkbox listeners
             const checkboxes = document.querySelectorAll('.credential-checkbox');
             checkboxes.forEach(checkbox => {

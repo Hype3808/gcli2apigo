@@ -294,7 +294,7 @@ func GeminiStreamChunkToOpenAI(geminiChunk map[string]interface{}, model string,
 	}
 }
 
-func mapFinishReason(geminiReason string) interface{} {
+func MapFinishReason(geminiReason string) interface{} {
 	switch geminiReason {
 	case "STOP":
 		return "stop"
@@ -305,6 +305,11 @@ func mapFinishReason(geminiReason string) interface{} {
 	default:
 		return nil
 	}
+}
+
+// Deprecated: use MapFinishReason instead
+func mapFinishReason(geminiReason string) interface{} {
+	return MapFinishReason(geminiReason)
 }
 
 func extractMarkdownImages(text string) []map[string]interface{} {

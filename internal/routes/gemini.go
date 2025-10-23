@@ -161,44 +161,75 @@ func handleGeminiStreamingResponse(w http.ResponseWriter, result interface{}) {
 		return
 	}
 
-	// Buffered streaming with timed flush
-	// Buffer size: 8KB for accumulating chunks
-	// Flush interval: 50ms for optimal TTFW and responsiveness
-	buffer := make([]byte, 0, 8*1024)
-	flushTicker := time.NewTicker(50 * time.Millisecond)
-	defer flushTicker.Stop()
+	// Smart buffering: accumulate chunks and flush on sentence boundaries or time
+	var chunkAccumulator strings.Builder
+	chunkAccumulator.Grow(8 * 1024) // Pre-allocate 8KB
 
-	flushBuffer := func() {
-		if len(buffer) > 0 {
-			w.Write(buffer)
-			flusher.Flush()
-			buffer = buffer[:0] // Reset buffer
+	lastFlushTime := time.Now()
+	flushInterval := 50 * time.Millisecond
+
+	// Sentence boundary detection
+	isSentenceBoundary := func(text string) bool {
+		if len(text) == 0 {
+			return false
 		}
+		// Check last rune for sentence boundaries (supports Unicode)
+		runes := []rune(text)
+		lastRune := runes[len(runes)-1]
+		return lastRune == '.' || lastRune == '!' || lastRune == '?' ||
+			lastRune == '。' || lastRune == '！' || lastRune == '？' ||
+			lastRune == '\n'
 	}
 
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case <-flushTicker.C:
-				flushBuffer()
-			case <-done:
-				return
-			}
+	sendAccumulatedChunk := func() {
+		if chunkAccumulator.Len() == 0 {
+			return
 		}
-	}()
+
+		fmt.Fprintf(w, "data: %s\n\n", chunkAccumulator.String())
+		flusher.Flush()
+
+		chunkAccumulator.Reset()
+		lastFlushTime = time.Now()
+	}
 
 	for chunk := range streamChan {
-		buffer = append(buffer, []byte(fmt.Sprintf("data: %s\n\n", chunk))...)
+		chunkAccumulator.WriteString(chunk)
 
-		// Flush if buffer exceeds 8KB
-		if len(buffer) >= 8*1024 {
-			flushBuffer()
+		// Extract text to check for sentence boundaries
+		var geminiChunk map[string]interface{}
+		if err := json.Unmarshal([]byte(chunk), &geminiChunk); err == nil {
+			candidates, _ := geminiChunk["candidates"].([]interface{})
+			for _, candidate := range candidates {
+				candMap, _ := candidate.(map[string]interface{})
+				content, _ := candMap["content"].(map[string]interface{})
+				parts, _ := content["parts"].([]interface{})
+
+				var textContent string
+				for _, part := range parts {
+					partMap, _ := part.(map[string]interface{})
+					if text, ok := partMap["text"].(string); ok {
+						textContent += text
+					}
+				}
+
+				// Flush conditions:
+				// 1. Sentence boundary detected
+				// 2. Time interval exceeded (50ms)
+				// 3. Buffer size exceeded (8KB safety limit)
+				timeSinceFlush := time.Since(lastFlushTime)
+
+				if isSentenceBoundary(textContent) ||
+					timeSinceFlush >= flushInterval ||
+					chunkAccumulator.Len() >= 8*1024 {
+					sendAccumulatedChunk()
+					return
+				}
+			}
 		}
 	}
 
-	done <- true
-	flushBuffer() // Final flush
+	sendAccumulatedChunk() // Final flush
 }
 
 func handleGeminiNonStreamingResponse(w http.ResponseWriter, result interface{}, modelName string) {
