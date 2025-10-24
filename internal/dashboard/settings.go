@@ -14,15 +14,15 @@ import (
 
 // Settings represents the server configuration settings
 type Settings struct {
-	Host                    string `json:"host"`
-	Port                    string `json:"port"`
-	Password                string `json:"password,omitempty"` // omitempty to not expose in GET
-	MaxRetries              string `json:"max_retries"`
-	Proxy                   string `json:"proxy"`
-	GeminiEndpoint          string `json:"gemini_endpoint"`
-	ResourceManagerEndpoint string `json:"resource_manager_endpoint"`
-	ServiceUsageEndpoint    string `json:"service_usage_endpoint"`
-	OAuth2Endpoint          string `json:"oauth2_endpoint"`
+	Host                    string  `json:"host"`
+	Port                    string  `json:"port"`
+	Password                string  `json:"password,omitempty"` // omitempty to not expose in GET
+	MaxRetries              string  `json:"max_retries"`
+	Proxy                   *string `json:"proxy"` // Pointer to distinguish between not-sent and empty
+	GeminiEndpoint          string  `json:"gemini_endpoint"`
+	ResourceManagerEndpoint string  `json:"resource_manager_endpoint"`
+	ServiceUsageEndpoint    string  `json:"service_usage_endpoint"`
+	OAuth2Endpoint          string  `json:"oauth2_endpoint"`
 }
 
 // HandleGetSettings returns the current server settings (excluding password)
@@ -32,11 +32,12 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	proxyValue := os.Getenv("HTTP_PROXY")
 	settings := Settings{
 		Host:                    os.Getenv("HOST"),
 		Port:                    os.Getenv("PORT"),
 		MaxRetries:              os.Getenv("MAX_RETRY_ATTEMPTS"),
-		Proxy:                   os.Getenv("HTTP_PROXY"),
+		Proxy:                   &proxyValue,
 		GeminiEndpoint:          os.Getenv("GEMINI_API_ENDPOINT"),
 		ResourceManagerEndpoint: os.Getenv("GCP_RESOURCE_MANAGER_ENDPOINT"),
 		ServiceUsageEndpoint:    os.Getenv("GCP_SERVICE_USAGE_ENDPOINT"),
@@ -144,9 +145,20 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.MaxRetries != "" {
 		envVars["MAX_RETRY_ATTEMPTS"] = settings.MaxRetries
 	}
-	if settings.Proxy != "" {
-		envVars["HTTP_PROXY"] = settings.Proxy
-		envVars["HTTPS_PROXY"] = settings.Proxy
+
+	// Handle proxy specially - pointer allows distinguishing between not-sent and empty
+	// nil = not sent (preserve existing), "" = sent as empty (remove), "value" = update
+	if settings.Proxy != nil {
+		if *settings.Proxy != "" {
+			envVars["HTTP_PROXY"] = *settings.Proxy
+			envVars["HTTPS_PROXY"] = *settings.Proxy
+			log.Printf("[INFO] Proxy set to: %s", *settings.Proxy)
+		} else {
+			// Empty string means remove proxy
+			delete(envVars, "HTTP_PROXY")
+			delete(envVars, "HTTPS_PROXY")
+			log.Printf("[INFO] Proxy settings removed")
+		}
 	}
 
 	// Update API endpoint settings

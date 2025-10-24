@@ -2956,10 +2956,12 @@ var dashboardTemplate = `<!DOCTYPE html>
             saveSettingsBtn.addEventListener('click', () => {
                 const formData = new FormData(settingsForm);
                 
-                // Only include non-empty values to preserve existing settings
+                // Build settings object
+                // For most fields: only send if non-empty (preserves existing)
+                // For proxy: always send to allow clearing
                 const settings = {};
                 const fields = [
-                    'host', 'port', 'password', 'max_retries', 'proxy',
+                    'host', 'port', 'password', 'max_retries',
                     'gemini_endpoint', 'resource_manager_endpoint',
                     'service_usage_endpoint', 'oauth2_endpoint'
                 ];
@@ -2970,6 +2972,10 @@ var dashboardTemplate = `<!DOCTYPE html>
                         settings[field] = value.trim();
                     }
                 });
+                
+                // Always include proxy field (even if empty) to allow clearing
+                const proxyValue = formData.get('proxy');
+                settings['proxy'] = proxyValue ? proxyValue.trim() : '';
 
                 loading.show('Saving settings...');
 
