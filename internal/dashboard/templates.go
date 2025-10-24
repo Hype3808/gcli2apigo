@@ -305,6 +305,26 @@ var dashboardTemplate = `<!DOCTYPE html>
             margin-top: 2px;
         }
 
+        .btn-settings {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            padding: 10px 16px;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            font-size: 18px;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-settings:hover {
+            background: #3a3a3a;
+            border-color: #4a4a4a;
+            transform: rotate(45deg);
+        }
+
         .btn-logout {
             background: #2a2a2a;
             color: #e0e0e0;
@@ -1005,6 +1025,195 @@ var dashboardTemplate = `<!DOCTYPE html>
             transform: scale(0.98);
         }
 
+        /* Settings Modal */
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .settings-modal.active {
+            display: flex;
+        }
+
+        .settings-modal-content {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .settings-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .settings-modal-header h3 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .settings-modal-close:hover {
+            color: #e0e0e0;
+        }
+
+        .settings-modal-body {
+            padding: 24px;
+        }
+
+        .settings-section-title {
+            color: #8b5cf6;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 32px 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #2a2a2a;
+        }
+
+        .settings-form-group {
+            margin-bottom: 24px;
+        }
+
+        .settings-form-group label {
+            display: block;
+            color: #e0e0e0;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .settings-form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #0f0f0f;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .settings-form-group input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background: #1a1a1a;
+        }
+
+        .settings-form-group input::placeholder {
+            color: #666;
+        }
+
+        .settings-help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .settings-restart-badge {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 12px;
+            padding: 24px;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .btn-save-settings {
+            flex: 1;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-save-settings:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-cancel-settings {
+            flex: 1;
+            padding: 12px 24px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel-settings:hover {
+            background: #3a3a3a;
+            border-color: #4a4a4a;
+        }
+
+        .settings-info-box {
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 3px solid #8b5cf6;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .settings-info-box p {
+            color: #e0e0e0;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
         /* Upload Modal */
         .upload-modal {
             position: fixed;
@@ -1340,6 +1549,28 @@ var dashboardTemplate = `<!DOCTYPE html>
                 font-size: 12px;
             }
 
+            .settings-modal-content {
+                margin: 0 16px;
+            }
+
+            .settings-modal-header {
+                padding: 20px;
+            }
+
+            .settings-modal-body {
+                padding: 20px;
+            }
+
+            .settings-actions {
+                padding: 20px;
+                flex-direction: column;
+            }
+
+            .btn-save-settings,
+            .btn-cancel-settings {
+                width: 100%;
+            }
+
             .upload-modal-content {
                 margin: 0 16px;
             }
@@ -1643,6 +1874,9 @@ var dashboardTemplate = `<!DOCTYPE html>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn-settings" id="settingsBtn" title="Settings">
+                    <span>⚙️</span>
+                </button>
                 ` + languageSwitcherHTML + `
                 <a href="/dashboard/logout" class="btn-logout">{{index .T "dashboard.logout"}}</a>
             </div>
@@ -1746,6 +1980,108 @@ var dashboardTemplate = `<!DOCTYPE html>
             </div>
             <div class="selection-info" id="selectionInfo">
                 <span id="selectedCount">0</span> {{index .T "actions.selected.count"}}
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="settings-modal" id="settingsModal">
+            <div class="settings-modal-content">
+                <div class="settings-modal-header">
+                    <h3><span>⚙️</span> Server Settings</h3>
+                    <button class="settings-modal-close" id="settingsModalClose">×</button>
+                </div>
+                <div class="settings-modal-body">
+                    <div class="settings-info-box">
+                        <p>⚠️ Settings marked with <span class="settings-restart-badge">RESTART REQUIRED</span> will only take effect after restarting the server. Max Retry Attempts takes effect immediately.</p>
+                    </div>
+                    
+                    <form id="settingsForm">
+                        <div class="settings-form-group">
+                            <label for="settingHost">
+                                Host
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingHost" name="host" placeholder="0.0.0.0" value="">
+                            <div class="settings-help-text">The host address the server listens on. Use 0.0.0.0 to listen on all interfaces.</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingPort">
+                                Port
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingPort" name="port" placeholder="7860" value="">
+                            <div class="settings-help-text">The port number the server listens on.</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingPassword">
+                                Password
+                            </label>
+                            <input type="password" id="settingPassword" name="password" placeholder="Enter new password" value="">
+                            <div class="settings-help-text">Dashboard password (GEMINI_AUTH_PASSWORD). Takes effect immediately. Leave empty to keep current password.</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingMaxRetries">
+                                Max Retry Attempts (429 Errors)
+                            </label>
+                            <input type="number" id="settingMaxRetries" name="max_retries" placeholder="5" min="1" max="100" value="">
+                            <div class="settings-help-text">Maximum number of different credentials to try when receiving 429 (rate limit) errors. Takes effect immediately. Default: 5</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingProxy">
+                                Proxy Server
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingProxy" name="proxy" placeholder="http://proxy.example.com:8080" value="">
+                            <div class="settings-help-text">Optional proxy server for outgoing requests. Supports: http://, https://, socks5://, socks5h:// (e.g., socks5://user:pass@localhost:1080)</div>
+                        </div>
+
+                        <div class="settings-section-title">API Endpoints (Advanced)</div>
+
+                        <div class="settings-form-group">
+                            <label for="settingGeminiEndpoint">
+                                Gemini API Endpoint
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingGeminiEndpoint" name="gemini_endpoint" placeholder="https://cloudcode-pa.googleapis.com" value="">
+                            <div class="settings-help-text">Gemini Cloud Assist API endpoint (cloudaicompanion.googleapis.com)</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingResourceManagerEndpoint">
+                                Cloud Resource Manager Endpoint
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingResourceManagerEndpoint" name="resource_manager_endpoint" placeholder="https://cloudresourcemanager.googleapis.com" value="">
+                            <div class="settings-help-text">GCP Resource Manager API endpoint for project listing</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingServiceUsageEndpoint">
+                                Service Usage Endpoint
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingServiceUsageEndpoint" name="service_usage_endpoint" placeholder="https://serviceusage.googleapis.com" value="">
+                            <div class="settings-help-text">GCP Service Usage API endpoint (generativelanguage.googleapis.com)</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingOAuth2Endpoint">
+                                OAuth2 Endpoint
+                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                            </label>
+                            <input type="text" id="settingOAuth2Endpoint" name="oauth2_endpoint" placeholder="https://oauth2.googleapis.com" value="">
+                            <div class="settings-help-text">OAuth2 token endpoint for authentication</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="settings-actions">
+                    <button class="btn-cancel-settings" id="cancelSettingsBtn">Cancel</button>
+                    <button class="btn-save-settings" id="saveSettingsBtn">Save Settings</button>
+                </div>
             </div>
         </div>
 
@@ -2556,12 +2892,123 @@ var dashboardTemplate = `<!DOCTYPE html>
             }
         });
 
+        // Settings modal functionality
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsModalClose = document.getElementById('settingsModalClose');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const settingsForm = document.getElementById('settingsForm');
+
+        // Open settings modal
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                loadCurrentSettings();
+                settingsModal.classList.add('active');
+            });
+        }
+
+        // Close settings modal
+        if (settingsModalClose) {
+            settingsModalClose.addEventListener('click', () => {
+                settingsModal.classList.remove('active');
+            });
+        }
+
+        if (cancelSettingsBtn) {
+            cancelSettingsBtn.addEventListener('click', () => {
+                settingsModal.classList.remove('active');
+            });
+        }
+
+        // Close modal on background click
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('active');
+            }
+        });
+
+        // Load current settings
+        function loadCurrentSettings() {
+            fetch('/dashboard/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('settingHost').value = data.settings.host || '';
+                        document.getElementById('settingPort').value = data.settings.port || '';
+                        document.getElementById('settingPassword').value = ''; // Never show current password
+                        document.getElementById('settingMaxRetries').value = data.settings.max_retries || '5';
+                        document.getElementById('settingProxy').value = data.settings.proxy || '';
+                        document.getElementById('settingGeminiEndpoint').value = data.settings.gemini_endpoint || '';
+                        document.getElementById('settingResourceManagerEndpoint').value = data.settings.resource_manager_endpoint || '';
+                        document.getElementById('settingServiceUsageEndpoint').value = data.settings.service_usage_endpoint || '';
+                        document.getElementById('settingOAuth2Endpoint').value = data.settings.oauth2_endpoint || '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load settings:', error);
+                    toast.show('Failed to load current settings', 'error');
+                });
+        }
+
+        // Save settings
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', () => {
+                const formData = new FormData(settingsForm);
+                
+                // Only include non-empty values to preserve existing settings
+                const settings = {};
+                const fields = [
+                    'host', 'port', 'password', 'max_retries', 'proxy',
+                    'gemini_endpoint', 'resource_manager_endpoint',
+                    'service_usage_endpoint', 'oauth2_endpoint'
+                ];
+                
+                fields.forEach(field => {
+                    const value = formData.get(field);
+                    if (value && value.trim() !== '') {
+                        settings[field] = value.trim();
+                    }
+                });
+
+                loading.show('Saving settings...');
+
+                fetch('/dashboard/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.hide();
+                    if (data.success) {
+                        settingsModal.classList.remove('active');
+                        toast.show(data.message + ' Please restart the server for changes to take effect.', 'success');
+                    } else {
+                        toast.show(data.error || 'Failed to save settings', 'error');
+                    }
+                })
+                .catch(error => {
+                    loading.hide();
+                    toast.show('Failed to save settings: ' + error.message, 'error');
+                });
+            });
+        }
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            // ESC key closes toast
+            // ESC key closes toast and modals
             if (e.key === 'Escape') {
                 if (toast.element.classList.contains('active')) {
                     toast.hide();
+                }
+                if (settingsModal.classList.contains('active')) {
+                    settingsModal.classList.remove('active');
+                }
+                if (uploadModal.classList.contains('active')) {
+                    uploadModal.classList.remove('active');
                 }
             }
         });

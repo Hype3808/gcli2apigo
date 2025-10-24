@@ -1,14 +1,28 @@
 package config
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 )
 
-// API Endpoints
-const CodeAssistEndpoint = "https://cloudcode-pa.googleapis.com"
+// API Endpoints - configurable via environment variables
+var (
+	// CodeAssistEndpoint is the Gemini Cloud Assist API endpoint
+	CodeAssistEndpoint = getEnvOrDefault("GEMINI_API_ENDPOINT", "https://cloudcode-pa.googleapis.com")
+
+	// CloudResourceManagerEndpoint is the GCP Resource Manager API endpoint
+	CloudResourceManagerEndpoint = getEnvOrDefault("GCP_RESOURCE_MANAGER_ENDPOINT", "https://cloudresourcemanager.googleapis.com")
+
+	// ServiceUsageEndpoint is the GCP Service Usage API endpoint
+	ServiceUsageEndpoint = getEnvOrDefault("GCP_SERVICE_USAGE_ENDPOINT", "https://serviceusage.googleapis.com")
+
+	// OAuth2Endpoint is the OAuth2 token endpoint
+	OAuth2Endpoint = getEnvOrDefault("OAUTH2_ENDPOINT", "https://oauth2.googleapis.com")
+)
 
 // Client Configuration
 const CLIVersion = "0.1.5" // Match current gemini-cli version
@@ -66,11 +80,35 @@ var GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
 // Debug Logging
 var DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
 
+// ReloadConfig reloads configuration from environment variables
+// Call this after loading .env file to pick up new values
+func ReloadConfig() {
+	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
+	DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
+	log.Printf("[INFO] Configuration reloaded: Password set=%v, Debug=%v",
+		GeminiAuthPassword != "123456", DebugLoggingEnabled)
+}
+
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvOrDefaultInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+// GetMaxRetryAttempts returns the current max retry attempts setting
+// This reads from environment variable each time to allow dynamic updates
+func GetMaxRetryAttempts() int {
+	return getEnvOrDefaultInt("MAX_RETRY_ATTEMPTS", 5)
 }
 
 // IsDebugEnabled returns true if debug logging is enabled

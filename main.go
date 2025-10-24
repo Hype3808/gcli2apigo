@@ -12,17 +12,33 @@ import (
 
 	"gcli2apigo/internal/auth"
 	"gcli2apigo/internal/banlist"
+	"gcli2apigo/internal/config"
 	"gcli2apigo/internal/dashboard"
 	"gcli2apigo/internal/i18n"
 	"gcli2apigo/internal/routes"
 	"gcli2apigo/internal/usage"
 
-	_ "github.com/joho/godotenv/autoload"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Configure logging
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Explicitly load .env file
+	// This ensures settings are loaded even if autoload doesn't work
+	if err := godotenv.Load(); err != nil {
+		log.Printf("[WARN] No .env file found or error loading: %v", err)
+		log.Printf("[INFO] Using default configuration or environment variables")
+	} else {
+		log.Printf("[INFO] Loaded configuration from .env file")
+		// Log loaded settings (excluding password for security)
+		log.Printf("[INFO] Configuration: HOST=%s, PORT=%s, MAX_RETRY_ATTEMPTS=%s",
+			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("MAX_RETRY_ATTEMPTS"))
+	}
+
+	// Reload config to pick up values from .env
+	config.ReloadConfig()
 
 	// Get server configuration
 	host := os.Getenv("HOST")
@@ -82,6 +98,17 @@ func main() {
 	// Dashboard API routes for language
 	mux.HandleFunc("/dashboard/api/language", dashboardHandlers.HandleSetLanguage)
 	mux.HandleFunc("/dashboard/api/translations", dashboardHandlers.HandleGetTranslations)
+
+	// Dashboard API routes for settings
+	mux.HandleFunc("/dashboard/api/settings", dashboardHandlers.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			dashboardHandlers.HandleGetSettings(w, r)
+		} else if r.Method == http.MethodPost {
+			dashboardHandlers.HandleSaveSettings(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 
 	// Dashboard API route for deleting specific credentials
 	// Pattern: /dashboard/api/credentials/{project_id}
@@ -179,7 +206,7 @@ func handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 			"health": "/health",
 		},
 		"authentication": "Required for all endpoints except root and health",
-		"repository":     "https://github.com/user/gcli2apigo",
+		"repository":     "https://github.com/Hype3808/gcli2apigo",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -236,6 +263,9 @@ func initializeApplication() error {
 	tracker := usage.GetTracker()
 	allUsage := tracker.GetAllUsage()
 	log.Printf("Initialized usage tracker with %d project records", len(allUsage))
+
+	// Check and reset usage stats if needed (handles cases where program was not running during reset time)
+	tracker.CheckAndResetIfNeeded()
 
 	// Ensure JSON files exist with empty defaults
 	ensureJSONFiles(credsDir)

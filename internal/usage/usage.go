@@ -192,8 +192,16 @@ func (ut *UsageTracker) GetAllUsage() map[string]*ProjectUsage {
 
 // shouldReset checks if usage should be reset based on last reset time
 func (ut *UsageTracker) shouldReset(lastResetTime time.Time) bool {
-	nextReset := ut.getNextResetTime()
-	return time.Now().After(nextReset) && lastResetTime.Before(nextReset)
+	// If lastResetTime is zero, it needs reset
+	if lastResetTime.IsZero() {
+		return true
+	}
+
+	// Get the most recent reset time (today or yesterday at 3 PM)
+	lastResetPoint := ut.getLastResetTime()
+
+	// If the last reset was before the most recent reset point, we need to reset
+	return lastResetTime.Before(lastResetPoint)
 }
 
 // getLastResetTime returns the most recent reset time (today or yesterday at 3 PM GMT+8)
@@ -314,6 +322,37 @@ func (ut *UsageTracker) Load() error {
 
 	log.Printf("[INFO] Loaded usage statistics for %d projects", len(ut.usageMap))
 	return nil
+}
+
+// CheckAndResetIfNeeded checks all projects and resets usage if the reset time has passed
+// This should be called on startup to handle cases where the program was not running during reset time
+func (ut *UsageTracker) CheckAndResetIfNeeded() {
+	ut.mu.Lock()
+	defer ut.mu.Unlock()
+
+	resetCount := 0
+	nextReset := ut.getNextResetTime()
+
+	for projectID, usage := range ut.usageMap {
+		if ut.shouldReset(usage.LastResetTime) {
+			log.Printf("[INFO] Resetting usage for project %s (last reset: %v, next reset: %v)",
+				projectID, usage.LastResetTime, nextReset)
+			usage.ProModelCount = 0
+			usage.OverallCount = 0
+			usage.LastResetTime = ut.getLastResetTime()
+			resetCount++
+		}
+	}
+
+	if resetCount > 0 {
+		log.Printf("[INFO] Reset usage statistics for %d projects on startup", resetCount)
+		// Save the reset state to disk
+		ut.mu.Unlock()
+		ut.Save()
+		ut.mu.Lock()
+	} else {
+		log.Printf("[INFO] No usage reset needed on startup")
+	}
 }
 
 // IsProModel checks if a model name is a Pro model (gemini-2.5-pro variants)

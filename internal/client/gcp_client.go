@@ -1,14 +1,20 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"gcli2apigo/internal/config"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
+	"golang.org/x/net/proxy"
 	"golang.org/x/oauth2"
 )
 
@@ -33,12 +39,94 @@ type projectsResponse struct {
 
 // NewGCPClient creates a new GCP client with the provided OAuth token
 func NewGCPClient(token *oauth2.Token) *GCPClient {
+	// Create transport with proxy support
+	transport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     5 * time.Minute,
+	}
+
+	// Configure proxy if environment variable is set
+	if proxyURL := getProxyURL(); proxyURL != nil {
+		if strings.HasPrefix(proxyURL.Scheme, "socks5") {
+			// SOCKS5 proxy requires special handling
+			configureSocks5ProxyForGCP(transport, proxyURL)
+		} else {
+			// HTTP/HTTPS proxy
+			transport.Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
 	return &GCPClient{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
 		token: token,
 	}
+}
+
+// getProxyURL returns the proxy URL from environment variables
+// Supports: http://, https://, socks5://, socks5h://
+func getProxyURL() *url.URL {
+	// Check for proxy environment variables (case-insensitive)
+	proxyStr := os.Getenv("HTTPS_PROXY")
+	if proxyStr == "" {
+		proxyStr = os.Getenv("https_proxy")
+	}
+	if proxyStr == "" {
+		proxyStr = os.Getenv("HTTP_PROXY")
+	}
+	if proxyStr == "" {
+		proxyStr = os.Getenv("http_proxy")
+	}
+
+	if proxyStr == "" {
+		return nil
+	}
+
+	proxyURL, err := url.Parse(proxyStr)
+	if err != nil {
+		log.Printf("[WARN] Invalid proxy URL '%s': %v", proxyStr, err)
+		return nil
+	}
+
+	// Validate proxy scheme
+	scheme := strings.ToLower(proxyURL.Scheme)
+	if scheme != "http" && scheme != "https" && scheme != "socks5" && scheme != "socks5h" {
+		log.Printf("[WARN] Unsupported proxy scheme '%s'. Supported: http, https, socks5, socks5h", scheme)
+		return nil
+	}
+
+	log.Printf("[INFO] GCP client using %s proxy: %s://%s", strings.ToUpper(scheme), scheme, proxyURL.Host)
+	return proxyURL
+}
+
+// configureSocks5ProxyForGCP configures SOCKS5 proxy for GCP client transport
+func configureSocks5ProxyForGCP(transport *http.Transport, proxyURL *url.URL) {
+	// Create SOCKS5 dialer
+	var auth *proxy.Auth
+	if proxyURL.User != nil {
+		password, _ := proxyURL.User.Password()
+		auth = &proxy.Auth{
+			User:     proxyURL.User.Username(),
+			Password: password,
+		}
+	}
+
+	// Create SOCKS5 dialer
+	dialer, err := proxy.SOCKS5("tcp", proxyURL.Host, auth, proxy.Direct)
+	if err != nil {
+		log.Printf("[ERROR] Failed to create SOCKS5 proxy dialer for GCP client: %v", err)
+		return
+	}
+
+	// Set custom DialContext that uses SOCKS5
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return dialer.Dial(network, addr)
+	}
+
+	log.Printf("[INFO] GCP client SOCKS5 proxy configured successfully")
 }
 
 // ListProjects retrieves all ACTIVE projects accessible to the authenticated user
@@ -52,7 +140,8 @@ func (gc *GCPClient) ListProjects() ([]Project, error) {
 	for {
 		// Build the API URL using strings.Builder to avoid allocations
 		var urlBuilder strings.Builder
-		urlBuilder.WriteString("https://cloudresourcemanager.googleapis.com/v1/projects")
+		urlBuilder.WriteString(config.CloudResourceManagerEndpoint)
+		urlBuilder.WriteString("/v1/projects")
 		if pageToken != "" {
 			urlBuilder.WriteString("?pageToken=")
 			urlBuilder.WriteString(pageToken)
@@ -145,7 +234,7 @@ func (gc *GCPClient) EnableService(projectID string, serviceName string) error {
 	}
 
 	// Enable the service
-	url := fmt.Sprintf("https://serviceusage.googleapis.com/v1/projects/%s/services/%s:enable", projectID, serviceName)
+	url := fmt.Sprintf("%s/v1/projects/%s/services/%s:enable", config.ServiceUsageEndpoint, projectID, serviceName)
 
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
@@ -187,7 +276,7 @@ func (gc *GCPClient) EnableService(projectID string, serviceName string) error {
 
 // isServiceEnabled checks if a service is already enabled for a project
 func (gc *GCPClient) isServiceEnabled(projectID string, serviceName string) (bool, error) {
-	url := fmt.Sprintf("https://serviceusage.googleapis.com/v1/projects/%s/services/%s", projectID, serviceName)
+	url := fmt.Sprintf("%s/v1/projects/%s/services/%s", config.ServiceUsageEndpoint, projectID, serviceName)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

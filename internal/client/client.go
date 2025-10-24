@@ -80,7 +80,7 @@ func (trm *TokenRefreshManager) RefreshToken(credEntry *auth.CredentialEntry) er
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
-			TokenURL: "https://oauth2.googleapis.com/token",
+			TokenURL: config.OAuth2Endpoint + "/token",
 		},
 	}
 
@@ -123,6 +123,13 @@ func SendGeminiRequest(payload map[string]any, isStreaming bool) (any, error) {
 	}
 
 	// Retry loop: try different credentials on 429 errors
+	// Limited by MAX_RETRY_ATTEMPTS (default: 5)
+	// This is read dynamically to allow runtime updates without restart
+	maxRetries := config.GetMaxRetryAttempts()
+	if maxRetries <= 0 {
+		maxRetries = 5 // Ensure at least 1 attempt
+	}
+
 	for {
 		// Step 1: Randomly obtain an OAuth credential from the oauth_creds folder
 		credEntry, err := auth.GetCredentialForRequest()
@@ -133,10 +140,12 @@ func SendGeminiRequest(payload map[string]any, isStreaming bool) (any, error) {
 
 		// Check if we've already tried this credential
 		if triedCredentials[credEntry.ProjectID] {
-			// Check if we've tried all available credentials
-			if len(triedCredentials) >= auth.GetCredentialPoolSize() {
-				log.Printf("[ERROR] All available credentials have been tried and returned 429 errors")
-				return nil, fmt.Errorf("rate limit exceeded: all available credentials exhausted")
+			// Check if we've reached max retry attempts or tried all available credentials
+			poolSize := auth.GetCredentialPoolSize()
+			if len(triedCredentials) >= maxRetries || len(triedCredentials) >= poolSize {
+				log.Printf("[ERROR] Retry limit reached: tried %d credentials (max: %d, pool size: %d)",
+					len(triedCredentials), maxRetries, poolSize)
+				return nil, fmt.Errorf("rate limit exceeded: retry limit reached after %d attempts", len(triedCredentials))
 			}
 			// Skip this credential and try to get another one
 			continue
@@ -283,15 +292,18 @@ func SendGeminiRequest(payload map[string]any, isStreaming bool) (any, error) {
 		// Check for 429 error and retry with different credential
 		if resp.StatusCode == http.StatusTooManyRequests {
 			resp.Body.Close()
-			log.Printf("[WARN] Received 429 (Too Many Requests) for project %s, retrying with different credential...", projID)
+			log.Printf("[WARN] Received 429 (Too Many Requests) for project %s, retrying with different credential... (attempt %d/%d)",
+				projID, len(triedCredentials), maxRetries)
 
 			// Track error code for this project
 			usage.GetTracker().SetErrorCode(projID, resp.StatusCode)
 
-			// Check if we've tried all credentials
-			if len(triedCredentials) >= auth.GetCredentialPoolSize() {
-				log.Printf("[ERROR] All available credentials have been tried and returned 429 errors")
-				return nil, fmt.Errorf("rate limit exceeded: all available credentials exhausted")
+			// Check if we've reached max retry attempts or tried all credentials
+			poolSize := auth.GetCredentialPoolSize()
+			if len(triedCredentials) >= maxRetries || len(triedCredentials) >= poolSize {
+				log.Printf("[ERROR] Retry limit reached: tried %d credentials (max: %d, pool size: %d)",
+					len(triedCredentials), maxRetries, poolSize)
+				return nil, fmt.Errorf("rate limit exceeded: retry limit reached after %d attempts", len(triedCredentials))
 			}
 
 			// Continue to next iteration to try another credential
