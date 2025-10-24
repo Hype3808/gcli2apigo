@@ -34,11 +34,12 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	proxyValue := os.Getenv("HTTP_PROXY")
 	settings := Settings{
 		Host:                    os.Getenv("HOST"),
 		Port:                    os.Getenv("PORT"),
 		MaxRetries:              os.Getenv("MAX_RETRY_ATTEMPTS"),
-		Proxy:                   os.Getenv("HTTP_PROXY"),
+		Proxy:                   &proxyValue,
 		GeminiEndpoint:          os.Getenv("GEMINI_API_ENDPOINT"),
 		ResourceManagerEndpoint: os.Getenv("GCP_RESOURCE_MANAGER_ENDPOINT"),
 		ServiceUsageEndpoint:    os.Getenv("GCP_SERVICE_USAGE_ENDPOINT"),
