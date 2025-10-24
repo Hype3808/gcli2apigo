@@ -39,7 +39,7 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 		Host:                    os.Getenv("HOST"),
 		Port:                    os.Getenv("PORT"),
 		MaxRetries:              os.Getenv("MAX_RETRY_ATTEMPTS"),
-		Proxy:                   &proxyValue,
+		Proxy:                   proxyValue,
 		GeminiEndpoint:          os.Getenv("GEMINI_API_ENDPOINT"),
 		ResourceManagerEndpoint: os.Getenv("GCP_RESOURCE_MANAGER_ENDPOINT"),
 		ServiceUsageEndpoint:    os.Getenv("GCP_SERVICE_USAGE_ENDPOINT"),
@@ -151,7 +151,7 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.MaxRetries != "" {
 		envVars["MAX_RETRY_ATTEMPTS"] = settings.MaxRetries
 	}
-	
+
 	// Handle proxy settings - support both setting and clearing
 	// When proxy is empty string, we explicitly remove it from envVars
 	proxyChanged := false
@@ -258,7 +258,7 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 		os.Setenv("MAX_RETRY_ATTEMPTS", settings.MaxRetries)
 		log.Printf("[INFO] Max retry attempts updated in memory: %s", settings.MaxRetries)
 	}
-	
+
 	// Update proxy environment variables and recreate HTTP client if proxy changed
 	if proxyChanged {
 		if settings.Proxy != "" {
@@ -276,7 +276,7 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 			os.Unsetenv("https_proxy")
 			log.Printf("[INFO] Proxy environment variables cleared")
 		}
-		
+
 		// Recreate HTTP client to apply new proxy settings
 		httputil.RecreateHTTPClient()
 		log.Printf("[INFO] HTTP client recreated with new proxy settings")
