@@ -10,19 +10,21 @@ import (
 	"strings"
 
 	"gcli2apigo/internal/config"
+	"gcli2apigo/internal/httputil"
 )
 
 // Settings represents the server configuration settings
 type Settings struct {
-	Host                    string  `json:"host"`
-	Port                    string  `json:"port"`
-	Password                string  `json:"password,omitempty"` // omitempty to not expose in GET
-	MaxRetries              string  `json:"max_retries"`
-	Proxy                   *string `json:"proxy"` // Pointer to distinguish between not-sent and empty
-	GeminiEndpoint          string  `json:"gemini_endpoint"`
-	ResourceManagerEndpoint string  `json:"resource_manager_endpoint"`
-	ServiceUsageEndpoint    string  `json:"service_usage_endpoint"`
-	OAuth2Endpoint          string  `json:"oauth2_endpoint"`
+	Host                    string `json:"host"`
+	Port                    string `json:"port"`
+	Password                string `json:"password,omitempty"` // omitempty to not expose in GET
+	MaxRetries              string `json:"max_retries"`
+	Proxy                   string `json:"proxy"`
+	GeminiEndpoint          string `json:"gemini_endpoint"`
+	ResourceManagerEndpoint string `json:"resource_manager_endpoint"`
+	ServiceUsageEndpoint    string `json:"service_usage_endpoint"`
+	OAuth2Endpoint          string `json:"oauth2_endpoint"`
+	GoogleApisEndpoint      string `json:"google_apis_endpoint"`
 }
 
 // HandleGetSettings returns the current server settings (excluding password)
@@ -42,6 +44,7 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 		ResourceManagerEndpoint: os.Getenv("GCP_RESOURCE_MANAGER_ENDPOINT"),
 		ServiceUsageEndpoint:    os.Getenv("GCP_SERVICE_USAGE_ENDPOINT"),
 		OAuth2Endpoint:          os.Getenv("OAUTH2_ENDPOINT"),
+		GoogleApisEndpoint:      os.Getenv("GOOGLE_APIS_ENDPOINT"),
 	}
 
 	// Set defaults if empty
@@ -65,6 +68,9 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 	}
 	if settings.OAuth2Endpoint == "" {
 		settings.OAuth2Endpoint = "https://oauth2.googleapis.com"
+	}
+	if settings.GoogleApisEndpoint == "" {
+		settings.GoogleApisEndpoint = "https://www.googleapis.com"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -145,19 +151,24 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.MaxRetries != "" {
 		envVars["MAX_RETRY_ATTEMPTS"] = settings.MaxRetries
 	}
-
-	// Handle proxy specially - pointer allows distinguishing between not-sent and empty
-	// nil = not sent (preserve existing), "" = sent as empty (remove), "value" = update
-	if settings.Proxy != nil {
-		if *settings.Proxy != "" {
-			envVars["HTTP_PROXY"] = *settings.Proxy
-			envVars["HTTPS_PROXY"] = *settings.Proxy
-			log.Printf("[INFO] Proxy set to: %s", *settings.Proxy)
-		} else {
-			// Empty string means remove proxy
+	
+	// Handle proxy settings - support both setting and clearing
+	// When proxy is empty string, we explicitly remove it from envVars
+	proxyChanged := false
+	oldProxy := envVars["HTTP_PROXY"]
+	if settings.Proxy != "" {
+		// Set new proxy
+		envVars["HTTP_PROXY"] = settings.Proxy
+		envVars["HTTPS_PROXY"] = settings.Proxy
+		proxyChanged = (oldProxy != settings.Proxy)
+		log.Printf("[INFO] Proxy updated to: %s", settings.Proxy)
+	} else {
+		// Clear proxy - delete from envVars map so it won't be written to .env
+		if oldProxy != "" {
 			delete(envVars, "HTTP_PROXY")
 			delete(envVars, "HTTPS_PROXY")
-			log.Printf("[INFO] Proxy settings removed")
+			proxyChanged = true
+			log.Printf("[INFO] Proxy cleared (was: %s)", oldProxy)
 		}
 	}
 
@@ -174,6 +185,9 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.OAuth2Endpoint != "" {
 		envVars["OAUTH2_ENDPOINT"] = settings.OAuth2Endpoint
 	}
+	if settings.GoogleApisEndpoint != "" {
+		envVars["GOOGLE_APIS_ENDPOINT"] = settings.GoogleApisEndpoint
+	}
 
 	log.Printf("[DEBUG] Saving settings to .env: %v", envVars)
 
@@ -187,7 +201,7 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 		"HOST", "PORT", "GEMINI_AUTH_PASSWORD", "MAX_RETRY_ATTEMPTS",
 		"HTTP_PROXY", "HTTPS_PROXY",
 		"GEMINI_API_ENDPOINT", "GCP_RESOURCE_MANAGER_ENDPOINT",
-		"GCP_SERVICE_USAGE_ENDPOINT", "OAUTH2_ENDPOINT",
+		"GCP_SERVICE_USAGE_ENDPOINT", "OAUTH2_ENDPOINT", "GOOGLE_APIS_ENDPOINT",
 	}
 	for _, key := range keys {
 		if value, exists := envVars[key]; exists {
@@ -243,6 +257,29 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.MaxRetries != "" {
 		os.Setenv("MAX_RETRY_ATTEMPTS", settings.MaxRetries)
 		log.Printf("[INFO] Max retry attempts updated in memory: %s", settings.MaxRetries)
+	}
+	
+	// Update proxy environment variables and recreate HTTP client if proxy changed
+	if proxyChanged {
+		if settings.Proxy != "" {
+			// Set proxy in environment
+			os.Setenv("HTTP_PROXY", settings.Proxy)
+			os.Setenv("HTTPS_PROXY", settings.Proxy)
+			os.Setenv("http_proxy", settings.Proxy)
+			os.Setenv("https_proxy", settings.Proxy)
+			log.Printf("[INFO] Proxy environment variables updated to: %s", settings.Proxy)
+		} else {
+			// Clear proxy from environment
+			os.Unsetenv("HTTP_PROXY")
+			os.Unsetenv("HTTPS_PROXY")
+			os.Unsetenv("http_proxy")
+			os.Unsetenv("https_proxy")
+			log.Printf("[INFO] Proxy environment variables cleared")
+		}
+		
+		// Recreate HTTP client to apply new proxy settings
+		httputil.RecreateHTTPClient()
+		log.Printf("[INFO] HTTP client recreated with new proxy settings")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
