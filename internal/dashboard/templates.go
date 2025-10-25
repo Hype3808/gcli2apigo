@@ -1874,7 +1874,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
-                <button class="btn-settings" id="settingsBtn" title="Settings">
+                <button class="btn-settings" id="settingsBtn" title="{{index .T "settings.title"}}">
                     <span>⚙️</span>
                 </button>
                 ` + languageSwitcherHTML + `
@@ -1987,100 +1987,100 @@ var dashboardTemplate = `<!DOCTYPE html>
         <div class="settings-modal" id="settingsModal">
             <div class="settings-modal-content">
                 <div class="settings-modal-header">
-                    <h3><span>⚙️</span> Server Settings</h3>
+                    <h3><span>⚙️</span> {{index .T "settings.title"}}</h3>
                     <button class="settings-modal-close" id="settingsModalClose">×</button>
                 </div>
                 <div class="settings-modal-body">
                     <div class="settings-info-box">
-                        <p>⚠️ Settings marked with <span class="settings-restart-badge">RESTART REQUIRED</span> will only take effect after restarting the server. Max Retry Attempts takes effect immediately.</p>
+                        <p>{{index .T "settings.info"}}</p>
                     </div>
                     
                     <form id="settingsForm">
                         <div class="settings-form-group">
                             <label for="settingHost">
-                                Host
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.host.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingHost" name="host" placeholder="0.0.0.0" value="">
-                            <div class="settings-help-text">The host address the server listens on. Use 0.0.0.0 to listen on all interfaces.</div>
+                            <input type="text" id="settingHost" name="host" placeholder="{{index .T "settings.host.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.host.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingPort">
-                                Port
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.port.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingPort" name="port" placeholder="7860" value="">
-                            <div class="settings-help-text">The port number the server listens on.</div>
+                            <input type="text" id="settingPort" name="port" placeholder="{{index .T "settings.port.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.port.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingPassword">
-                                Password
+                                {{index .T "settings.password.label"}}
                             </label>
-                            <input type="password" id="settingPassword" name="password" placeholder="Enter new password" value="">
-                            <div class="settings-help-text">Dashboard password (GEMINI_AUTH_PASSWORD). Takes effect immediately. Leave empty to keep current password.</div>
+                            <input type="password" id="settingPassword" name="password" placeholder="{{index .T "settings.password.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.password.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingMaxRetries">
-                                Max Retry Attempts (429 Errors)
+                                {{index .T "settings.max_retries.label"}}
                             </label>
-                            <input type="number" id="settingMaxRetries" name="max_retries" placeholder="5" min="1" max="100" value="">
-                            <div class="settings-help-text">Maximum number of different credentials to try when receiving 429 (rate limit) errors. Takes effect immediately. Default: 5</div>
+                            <input type="number" id="settingMaxRetries" name="max_retries" placeholder="{{index .T "settings.max_retries.placeholder"}}" min="1" max="100" value="">
+                            <div class="settings-help-text">{{index .T "settings.max_retries.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingProxy">
-                                Proxy Server
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.proxy.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingProxy" name="proxy" placeholder="http://proxy.example.com:8080" value="">
-                            <div class="settings-help-text">Optional proxy server for outgoing requests. Supports: http://, https://, socks5://, socks5h:// (e.g., socks5://user:pass@localhost:1080)</div>
+                            <input type="text" id="settingProxy" name="proxy" placeholder="{{index .T "settings.proxy.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.proxy.help"}}</div>
                         </div>
 
-                        <div class="settings-section-title">API Endpoints (Advanced)</div>
+                        <div class="settings-section-title">{{index .T "settings.api_endpoints"}}</div>
 
                         <div class="settings-form-group">
                             <label for="settingGeminiEndpoint">
-                                Gemini API Endpoint
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.gemini_endpoint.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingGeminiEndpoint" name="gemini_endpoint" placeholder="https://cloudcode-pa.googleapis.com" value="">
-                            <div class="settings-help-text">Gemini Cloud Assist API endpoint (cloudaicompanion.googleapis.com)</div>
+                            <input type="text" id="settingGeminiEndpoint" name="gemini_endpoint" placeholder="{{index .T "settings.gemini_endpoint.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.gemini_endpoint.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingResourceManagerEndpoint">
-                                Cloud Resource Manager Endpoint
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.resource_manager.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingResourceManagerEndpoint" name="resource_manager_endpoint" placeholder="https://cloudresourcemanager.googleapis.com" value="">
-                            <div class="settings-help-text">GCP Resource Manager API endpoint for project listing</div>
+                            <input type="text" id="settingResourceManagerEndpoint" name="resource_manager_endpoint" placeholder="{{index .T "settings.resource_manager.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.resource_manager.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingServiceUsageEndpoint">
-                                Service Usage Endpoint
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.service_usage.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingServiceUsageEndpoint" name="service_usage_endpoint" placeholder="https://serviceusage.googleapis.com" value="">
-                            <div class="settings-help-text">GCP Service Usage API endpoint (generativelanguage.googleapis.com)</div>
+                            <input type="text" id="settingServiceUsageEndpoint" name="service_usage_endpoint" placeholder="{{index .T "settings.service_usage.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.service_usage.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
                             <label for="settingOAuth2Endpoint">
-                                OAuth2 Endpoint
-                                <span class="settings-restart-badge">RESTART REQUIRED</span>
+                                {{index .T "settings.oauth2.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
                             </label>
-                            <input type="text" id="settingOAuth2Endpoint" name="oauth2_endpoint" placeholder="https://oauth2.googleapis.com" value="">
-                            <div class="settings-help-text">OAuth2 token endpoint for authentication</div>
+                            <input type="text" id="settingOAuth2Endpoint" name="oauth2_endpoint" placeholder="{{index .T "settings.oauth2.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.oauth2.help"}}</div>
                         </div>
                     </form>
                 </div>
                 <div class="settings-actions">
-                    <button class="btn-cancel-settings" id="cancelSettingsBtn">Cancel</button>
-                    <button class="btn-save-settings" id="saveSettingsBtn">Save Settings</button>
+                    <button class="btn-cancel-settings" id="cancelSettingsBtn">{{index .T "settings.cancel"}}</button>
+                    <button class="btn-save-settings" id="saveSettingsBtn">{{index .T "settings.save"}}</button>
                 </div>
             </div>
         </div>
@@ -2211,6 +2211,26 @@ var dashboardTemplate = `<!DOCTYPE html>
 
     <script>
         ` + languageSwitcherJS + `
+
+        // Translations object for JavaScript
+        const T = {
+            'confirm.ban': '{{index .T "confirm.ban"}}',
+            'confirm.unban': '{{index .T "confirm.unban"}}',
+            'confirm.delete': '{{index .T "confirm.delete"}}',
+            'confirm.ban.multiple': '{{index .T "confirm.ban.multiple"}}',
+            'confirm.unban.multiple': '{{index .T "confirm.unban.multiple"}}',
+            'confirm.delete.multiple': '{{index .T "confirm.delete.multiple"}}',
+            'error.delete.failed': '{{index .T "error.delete.failed"}}',
+            'error.delete.credentials': '{{index .T "error.delete.credentials"}}',
+            'error.ban.failed': '{{index .T "error.ban.failed"}}',
+            'error.unban.failed': '{{index .T "error.unban.failed"}}',
+            'error.delete.credential': '{{index .T "error.delete.credential"}}',
+            'error.unknown': '{{index .T "error.unknown"}}',
+            'error.settings.save': '{{index .T "error.settings.save"}}',
+            'error.settings.load': '{{index .T "error.settings.load"}}',
+            'success.deleted.multiple': '{{index .T "success.deleted.multiple"}}',
+            'success.settings.saved': '{{index .T "success.settings.saved"}}'
+        };
 
         // Toast notification system
         const toast = {
@@ -2362,7 +2382,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(data => {
-                            throw new Error(data.error || 'Failed to delete');
+                            throw new Error(data.error || T['error.delete.failed']);
                         });
                     }
                     return response.json();
@@ -2382,7 +2402,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 })
                 .catch(error => {
                     failed++;
-                    console.error('Failed to delete ' + projectId + ':', error);
+                    console.error(T['error.delete.failed'] + ' ' + projectId + ':', error);
                 });
             });
             
@@ -2392,9 +2412,10 @@ var dashboardTemplate = `<!DOCTYPE html>
                 if (failed === 0) {
                     toast.show('Successfully deleted ' + completed + ' credential(s)', 'success');
                 } else if (completed > 0) {
-                    toast.show('Deleted ' + completed + ' credential(s), ' + failed + ' failed', 'warning');
+                    const msg = T['success.deleted.multiple'].replace('%d', completed).replace('%d', failed);
+                    toast.show(msg, 'warning');
                 } else {
-                    toast.show('Failed to delete credentials', 'error');
+                    toast.show(T['error.delete.credentials'], 'error');
                 }
                 
                 // Clear selection
@@ -2427,12 +2448,12 @@ var dashboardTemplate = `<!DOCTYPE html>
                     toast.show(data.message, 'success');
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    toast.show(data.error || 'Failed to ban credentials', 'error');
+                    toast.show(data.error || T['error.ban.failed'], 'error');
                 }
             })
             .catch(error => {
                 loading.hide();
-                toast.show('Failed to ban credentials: ' + error.message, 'error');
+                toast.show(T['error.ban.failed'] + ': ' + error.message, 'error');
             });
         }
 
@@ -2451,12 +2472,12 @@ var dashboardTemplate = `<!DOCTYPE html>
                     toast.show(data.message, 'success');
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    toast.show(data.error || 'Failed to unban credentials', 'error');
+                    toast.show(data.error || T['error.unban.failed'], 'error');
                 }
             })
             .catch(error => {
                 loading.hide();
-                toast.show('Failed to unban credentials: ' + error.message, 'error');
+                toast.show(T['error.unban.failed'] + ': ' + error.message, 'error');
             });
         }
 
@@ -2471,7 +2492,7 @@ var dashboardTemplate = `<!DOCTYPE html>
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(data => {
-                        throw new Error(data.error || 'Failed to delete credential');
+                        throw new Error(data.error || T['error.delete.credential']);
                     });
                 }
                 return response.json();
@@ -2504,12 +2525,12 @@ var dashboardTemplate = `<!DOCTYPE html>
                         }, 300);
                     }
                 } else {
-                    throw new Error(data.error || 'Unknown error');
+                    throw new Error(data.error || T['error.unknown']);
                 }
             })
             .catch(error => {
                 loading.hide();
-                toast.show('Failed to delete credential: ' + error.message, 'error');
+                toast.show(T['error.delete.credential'] + ': ' + error.message, 'error');
                 console.error('Delete error:', error);
             });
         }
@@ -2805,7 +2826,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                     e.stopPropagation();
                     const projectId = button.getAttribute('data-project-id');
                     
-                    if (confirm('Are you sure you want to ban credential for project: ' + projectId + '?')) {
+                    if (confirm(T['confirm.ban'] + ' ' + projectId + '?')) {
                         banCredentials([projectId]);
                     }
                 });
@@ -2818,7 +2839,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                     e.stopPropagation();
                     const projectId = button.getAttribute('data-project-id');
                     
-                    if (confirm('Are you sure you want to unban credential for project: ' + projectId + '?')) {
+                    if (confirm(T['confirm.unban'] + ' ' + projectId + '?')) {
                         unbanCredentials([projectId]);
                     }
                 });
@@ -2831,7 +2852,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                     e.stopPropagation(); // Prevent card click
                     const projectId = button.getAttribute('data-project-id');
                     
-                    if (confirm('Are you sure you want to delete credential for project: ' + projectId + '?')) {
+                    if (confirm(T['confirm.delete'] + ' ' + projectId + '?')) {
                         deleteSingleCredential(projectId);
                     }
                 });
@@ -2854,7 +2875,8 @@ var dashboardTemplate = `<!DOCTYPE html>
                 const projectIds = Array.from(selectedProjects);
                 if (projectIds.length === 0) return;
                 
-                if (confirm('Are you sure you want to ban ' + projectIds.length + ' credential(s)?')) {
+                const confirmMsg = T['confirm.ban.multiple'].replace('%d', projectIds.length);
+                if (confirm(confirmMsg)) {
                     banCredentials(projectIds);
                 }
             });
@@ -2864,7 +2886,8 @@ var dashboardTemplate = `<!DOCTYPE html>
                 const projectIds = Array.from(selectedProjects);
                 if (projectIds.length === 0) return;
                 
-                if (confirm('Are you sure you want to unban ' + projectIds.length + ' credential(s)?')) {
+                const confirmMsg = T['confirm.unban.multiple'].replace('%d', projectIds.length);
+                if (confirm(confirmMsg)) {
                     unbanCredentials(projectIds);
                 }
             });
@@ -2875,7 +2898,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 if (projectIds.length === 0) return;
                 
                 // Show confirmation
-                const confirmMsg = 'Are you sure you want to delete ' + projectIds.length + ' credential(s)?';
+                const confirmMsg = T['confirm.delete.multiple'].replace('%d', projectIds.length);
                 if (confirm(confirmMsg)) {
                     bulkDeleteCredentials(projectIds);
                 }
@@ -2946,8 +2969,8 @@ var dashboardTemplate = `<!DOCTYPE html>
                     }
                 })
                 .catch(error => {
-                    console.error('Failed to load settings:', error);
-                    toast.show('Failed to load current settings', 'error');
+                    console.error(T['error.settings.load'] + ':', error);
+                    toast.show(T['error.settings.load'], 'error');
                 });
         }
 
@@ -2993,12 +3016,12 @@ var dashboardTemplate = `<!DOCTYPE html>
                         settingsModal.classList.remove('active');
                         toast.show(data.message + ' Please restart the server for changes to take effect.', 'success');
                     } else {
-                        toast.show(data.error || 'Failed to save settings', 'error');
+                        toast.show(data.error || T['error.settings.save'], 'error');
                     }
                 })
                 .catch(error => {
                     loading.hide();
-                    toast.show('Failed to save settings: ' + error.message, 'error');
+                    toast.show(T['error.settings.save'] + ': ' + error.message, 'error');
                 });
             });
         }

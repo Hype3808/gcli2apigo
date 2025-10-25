@@ -112,6 +112,55 @@ var Translations = map[Language]map[string]string{
 
 		// Language selector
 		"language.switch": "切换语言",
+
+		// Settings modal
+		"settings.title":                        "服务器设置",
+		"settings.info":                         "⚠️ 标记为 <span class=\"settings-restart-badge\">需要重启</span> 的设置只有在重启服务器后才会生效。最大重试次数立即生效。",
+		"settings.host.label":                   "主机地址",
+		"settings.host.placeholder":             "0.0.0.0",
+		"settings.host.help":                    "服务器监听的主机地址。使用 0.0.0.0 监听所有网络接口。",
+		"settings.port.label":                   "端口",
+		"settings.port.placeholder":             "7860",
+		"settings.port.help":                    "服务器监听的端口号。",
+		"settings.password.label":               "密码",
+		"settings.password.placeholder":         "输入新密码",
+		"settings.password.help":                "控制面板密码 (GEMINI_AUTH_PASSWORD)。立即生效。留空保持当前密码。",
+		"settings.max_retries.label":            "最大重试次数（429 错误）",
+		"settings.max_retries.placeholder":      "5",
+		"settings.max_retries.help":             "收到 429（速率限制）错误时尝试不同凭证的最大次数。立即生效。默认值：5",
+		"settings.proxy.label":                  "代理服务器",
+		"settings.proxy.placeholder":            "http://proxy.example.com:8080",
+		"settings.proxy.help":                   "用于出站请求的可选代理服务器。支持：http://、https://、socks5://、socks5h://（例如：socks5://user:pass@localhost:1080）",
+		"settings.api_endpoints":                "API 端点（高级）",
+		"settings.gemini_endpoint.label":        "Code Assist 端点",
+		"settings.gemini_endpoint.placeholder":  "https://cloudcode-pa.googleapis.com",
+		"settings.gemini_endpoint.help":         "Gemini Cloud Assist API 端点 (cloudaicompanion.googleapis.com)",
+		"settings.resource_manager.label":       "Resource Manager API 端点",
+		"settings.resource_manager.placeholder": "https://cloudresourcemanager.googleapis.com",
+		"settings.resource_manager.help":        "用于项目列表的 GCP 资源管理器 API 端点",
+		"settings.service_usage.label":          "Service Usage API 端点",
+		"settings.service_usage.placeholder":    "https://serviceusage.googleapis.com",
+		"settings.service_usage.help":           "GCP 服务使用 API 端点 (generativelanguage.googleapis.com)",
+		"settings.oauth2.label":                 "OAuth2 端点",
+		"settings.oauth2.placeholder":           "https://oauth2.googleapis.com",
+		"settings.oauth2.help":                  "用于身份验证的 OAuth2 令牌端点",
+		"settings.restart_required":             "需要重启",
+		"settings.cancel":                       "取消",
+		"settings.save":                         "保存设置",
+
+		// Error messages
+		"error.delete.failed":      "删除失败",
+		"error.delete.credentials": "删除凭证失败",
+		"error.ban.failed":         "禁用凭证失败",
+		"error.unban.failed":       "启用凭证失败",
+		"error.delete.credential":  "删除凭证失败",
+		"error.unknown":            "未知错误",
+		"error.settings.save":      "保存设置失败",
+		"error.settings.load":      "加载设置失败",
+
+		// Success messages
+		"success.deleted.multiple": "已删除 %d 个凭证，%d 个失败",
+		"success.settings.saved":   "设置保存成功",
 	},
 	LanguageEN: {
 		// Login page
@@ -207,6 +256,55 @@ var Translations = map[Language]map[string]string{
 
 		// Language selector
 		"language.switch": "Switch Language",
+
+		// Settings modal
+		"settings.title":                        "Server Settings",
+		"settings.info":                         "⚠️ Settings marked with <span class=\"settings-restart-badge\">RESTART REQUIRED</span> will only take effect after restarting the server. Max Retry Attempts takes effect immediately.",
+		"settings.host.label":                   "Host",
+		"settings.host.placeholder":             "0.0.0.0",
+		"settings.host.help":                    "The host address the server listens on. Use 0.0.0.0 to listen on all interfaces.",
+		"settings.port.label":                   "Port",
+		"settings.port.placeholder":             "7860",
+		"settings.port.help":                    "The port number the server listens on.",
+		"settings.password.label":               "Password",
+		"settings.password.placeholder":         "Enter new password",
+		"settings.password.help":                "Dashboard password (GEMINI_AUTH_PASSWORD). Takes effect immediately. Leave empty to keep current password.",
+		"settings.max_retries.label":            "Max Retry Attempts (429 Errors)",
+		"settings.max_retries.placeholder":      "5",
+		"settings.max_retries.help":             "Maximum number of different credentials to try when receiving 429 (rate limit) errors. Takes effect immediately. Default: 5",
+		"settings.proxy.label":                  "Proxy Server",
+		"settings.proxy.placeholder":            "http://proxy.example.com:8080",
+		"settings.proxy.help":                   "Optional proxy server for outgoing requests. Supports: http://, https://, socks5://, socks5h:// (e.g., socks5://user:pass@localhost:1080)",
+		"settings.api_endpoints":                "API Endpoints (Advanced)",
+		"settings.gemini_endpoint.label":        "Code Assist Endpoint",
+		"settings.gemini_endpoint.placeholder":  "https://cloudcode-pa.googleapis.com",
+		"settings.gemini_endpoint.help":         "Gemini Cloud Assist API endpoint (cloudaicompanion.googleapis.com)",
+		"settings.resource_manager.label":       "Cloud Resource Manager Endpoint",
+		"settings.resource_manager.placeholder": "https://cloudresourcemanager.googleapis.com",
+		"settings.resource_manager.help":        "GCP Resource Manager API endpoint for project listing",
+		"settings.service_usage.label":          "Service Usage Endpoint",
+		"settings.service_usage.placeholder":    "https://serviceusage.googleapis.com",
+		"settings.service_usage.help":           "GCP Service Usage API endpoint (generativelanguage.googleapis.com)",
+		"settings.oauth2.label":                 "OAuth2 Endpoint",
+		"settings.oauth2.placeholder":           "https://oauth2.googleapis.com",
+		"settings.oauth2.help":                  "OAuth2 token endpoint for authentication",
+		"settings.restart_required":             "RESTART REQUIRED",
+		"settings.cancel":                       "Cancel",
+		"settings.save":                         "Save Settings",
+
+		// Error messages
+		"error.delete.failed":      "Failed to delete",
+		"error.delete.credentials": "Failed to delete credentials",
+		"error.ban.failed":         "Failed to ban credentials",
+		"error.unban.failed":       "Failed to unban credentials",
+		"error.delete.credential":  "Failed to delete credential",
+		"error.unknown":            "Unknown error",
+		"error.settings.save":      "Failed to save settings",
+		"error.settings.load":      "Failed to load settings",
+
+		// Success messages
+		"success.deleted.multiple": "Deleted %d credential(s), %d failed",
+		"success.settings.saved":   "Settings saved successfully",
 	},
 }
 
