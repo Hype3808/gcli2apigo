@@ -24,7 +24,6 @@ type Settings struct {
 	ResourceManagerEndpoint string `json:"resource_manager_endpoint"`
 	ServiceUsageEndpoint    string `json:"service_usage_endpoint"`
 	OAuth2Endpoint          string `json:"oauth2_endpoint"`
-	GoogleApisEndpoint      string `json:"google_apis_endpoint"`
 }
 
 // HandleGetSettings returns the current server settings (excluding password)
@@ -44,7 +43,6 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 		ResourceManagerEndpoint: os.Getenv("GCP_RESOURCE_MANAGER_ENDPOINT"),
 		ServiceUsageEndpoint:    os.Getenv("GCP_SERVICE_USAGE_ENDPOINT"),
 		OAuth2Endpoint:          os.Getenv("OAUTH2_ENDPOINT"),
-		GoogleApisEndpoint:      os.Getenv("GOOGLE_APIS_ENDPOINT"),
 	}
 
 	// Set defaults if empty
@@ -68,9 +66,6 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 	}
 	if settings.OAuth2Endpoint == "" {
 		settings.OAuth2Endpoint = "https://oauth2.googleapis.com"
-	}
-	if settings.GoogleApisEndpoint == "" {
-		settings.GoogleApisEndpoint = "https://www.googleapis.com"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -184,9 +179,6 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	}
 	if settings.OAuth2Endpoint != "" {
 		envVars["OAUTH2_ENDPOINT"] = settings.OAuth2Endpoint
-	}
-	if settings.GoogleApisEndpoint != "" {
-		envVars["GOOGLE_APIS_ENDPOINT"] = settings.GoogleApisEndpoint
 	}
 
 	log.Printf("[DEBUG] Saving settings to .env: %v", envVars)

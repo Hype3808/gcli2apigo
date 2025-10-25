@@ -11,18 +11,21 @@ import (
 	"gcli2apigo/internal/config"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
 // GetOAuthConfig returns an OAuth2 configuration using existing config constants
 // This function reuses the ClientID, ClientSecret, and Scopes from the config package
+// Note: Uses real Google OAuth endpoints for login (cannot be proxied)
 func GetOAuthConfig(redirectURL string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     config.ClientID,
 		ClientSecret: config.ClientSecret,
 		RedirectURL:  redirectURL,
 		Scopes:       config.Scopes,
-		Endpoint:     google.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: config.OAuth2Endpoint + "/token",
+		},
 	}
 }
 
@@ -64,9 +67,10 @@ func SaveProjectCredential(token *oauth2.Token, projectID string, credentialsDir
 	}
 
 	// Extract client credentials from token extra data or use defaults
+	// Uses configurable endpoint to support reverse proxy for China users
 	clientID := config.ClientID
 	clientSecret := config.ClientSecret
-	tokenURI := "https://oauth2.googleapis.com/token"
+	tokenURI := config.OAuth2Endpoint + "/token"
 
 	if extra := token.Extra("client_id"); extra != nil {
 		if id, ok := extra.(string); ok && id != "" {
@@ -140,11 +144,12 @@ func RefreshToken(token *oauth2.Token) (*oauth2.Token, error) {
 	}
 
 	// Create a minimal OAuth config for token refresh
+	// Uses configurable endpoint to support reverse proxy for China users
 	tokenConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
-			TokenURL: "https://oauth2.googleapis.com/token",
+			TokenURL: config.OAuth2Endpoint + "/token",
 		},
 	}
 

@@ -18,7 +18,6 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
 // tokenStore temporarily stores OAuth tokens during the streaming process
@@ -46,6 +45,7 @@ type OAuthHandler struct {
 // NewOAuthHandler creates a new OAuthHandler instance
 func NewOAuthHandler() *OAuthHandler {
 	// Configure OAuth with scopes for Cloud Resource Manager and Service Usage APIs
+	// Note: Uses real Google OAuth endpoints for login (cannot be proxied)
 	oauthConfig := &oauth2.Config{
 		ClientID:     config.ClientID,
 		ClientSecret: config.ClientSecret,
@@ -55,7 +55,10 @@ func NewOAuthHandler() *OAuthHandler {
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",
 		},
-		Endpoint: google.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL: config.OAuth2Endpoint + "/token",
+		},
 	}
 
 	oh := &OAuthHandler{
@@ -463,9 +466,10 @@ func (oh *OAuthHandler) saveCredential(token *oauth2.Token, projectID string) er
 	log.Printf("[DEBUG] Credential directory verified: %s (permissions: 0700)", credsDir)
 
 	// Extract client credentials from token extra data or use defaults
+	// Uses configurable endpoint to support reverse proxy for China users
 	clientID := config.ClientID
 	clientSecret := config.ClientSecret
-	tokenURI := "https://oauth2.googleapis.com/token"
+	tokenURI := config.OAuth2Endpoint + "/token"
 
 	if extra := token.Extra("client_id"); extra != nil {
 		if id, ok := extra.(string); ok && id != "" {
