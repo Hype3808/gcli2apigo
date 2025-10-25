@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -24,7 +25,7 @@ func GetOAuthConfig(redirectURL string) *oauth2.Config {
 		Scopes:       config.Scopes,
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
-			TokenURL: config.OAuth2Endpoint + "/token",
+			TokenURL: config.GetOAuth2Endpoint() + "/token",
 		},
 	}
 }
@@ -70,7 +71,9 @@ func SaveProjectCredential(token *oauth2.Token, projectID string, credentialsDir
 	// Uses configurable endpoint to support reverse proxy for China users
 	clientID := config.ClientID
 	clientSecret := config.ClientSecret
-	tokenURI := config.OAuth2Endpoint + "/token"
+	tokenURI := config.GetOAuth2Endpoint() + "/token"
+
+	log.Printf("[DEBUG] OAuth token exchange - Token URI: %s", tokenURI)
 
 	if extra := token.Extra("client_id"); extra != nil {
 		if id, ok := extra.(string); ok && id != "" {
@@ -149,7 +152,7 @@ func RefreshToken(token *oauth2.Token) (*oauth2.Token, error) {
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
-			TokenURL: config.OAuth2Endpoint + "/token",
+			TokenURL: config.GetOAuth2Endpoint() + "/token",
 		},
 	}
 

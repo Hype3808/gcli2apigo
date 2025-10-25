@@ -190,9 +190,11 @@ func OnboardUser(token *oauth2.Token, projectID string) error {
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
 			Endpoint: oauth2.Endpoint{
-				TokenURL: "https://oauth2.googleapis.com/token",
+				TokenURL: config.GetOAuth2Endpoint() + "/token",
 			},
 		}
+		
+		log.Printf("[DEBUG] OnboardUser token refresh - Token URL: %s", tokenConfig.Endpoint.TokenURL)
 
 		newToken, err := tokenConfig.TokenSource(context.Background(), token).Token()
 		if err != nil {
@@ -359,7 +361,11 @@ func GetUserProjectID(token *oauth2.Token) (string, error) {
 }
 
 func makeAPIRequest(token *oauth2.Token, endpoint string, payload map[string]interface{}) (map[string]interface{}, error) {
-	url := config.CodeAssistEndpoint + endpoint
+	// Use dynamic endpoint getter to support runtime configuration changes
+	apiEndpoint := config.GetCodeAssistEndpoint()
+	url := apiEndpoint + endpoint
+	
+	log.Printf("[DEBUG] makeAPIRequest - Endpoint: %s, Path: %s, Full URL: %s", apiEndpoint, endpoint, url)
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {

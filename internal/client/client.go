@@ -80,7 +80,7 @@ func (trm *TokenRefreshManager) RefreshToken(credEntry *auth.CredentialEntry) er
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
-			TokenURL: config.OAuth2Endpoint + "/token",
+			TokenURL: config.GetOAuth2Endpoint() + "/token",
 		},
 	}
 
@@ -256,13 +256,16 @@ func SendGeminiRequest(payload map[string]any, isStreaming bool) (any, error) {
 		}
 
 		var urlBuilder strings.Builder
-		urlBuilder.WriteString(config.CodeAssistEndpoint)
+		endpoint := config.GetCodeAssistEndpoint()
+		urlBuilder.WriteString(endpoint)
 		urlBuilder.WriteString("/v1internal:")
 		urlBuilder.WriteString(action)
 		if isStreaming {
 			urlBuilder.WriteString("?alt=sse")
 		}
 		targetURL := urlBuilder.String()
+
+		log.Printf("[DEBUG] Gemini API request - Endpoint: %s, Action: %s, Full URL: %s", endpoint, action, targetURL)
 
 		// Build request
 		jsonData, err := json.Marshal(finalPayload)
