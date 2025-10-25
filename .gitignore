@@ -1,0 +1,29 @@
+# Binaries
+*.exe
+*.exe~
+gcli2apigo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OAuth credentials and sensitive data
+oauth_creds/*.json
+!oauth_creds/banlist.json
+!oauth_creds/usage_stats.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test_*.ps1
+test_*.sh

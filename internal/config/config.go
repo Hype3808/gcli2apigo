@@ -10,19 +10,50 @@ import (
 )
 
 // API Endpoints - configurable via environment variables
+// These are now read dynamically to support runtime configuration changes
 var (
-	// CodeAssistEndpoint is the Gemini Cloud Assist API endpoint
-	CodeAssistEndpoint = getEnvOrDefault("GEMINI_API_ENDPOINT", "https://cloudcode-pa.googleapis.com")
+	// CodeAssistEndpoint is deprecated, use GetCodeAssistEndpoint() instead
+	CodeAssistEndpoint = "https://cloudcode-pa.googleapis.com"
 
-	// CloudResourceManagerEndpoint is the GCP Resource Manager API endpoint
-	CloudResourceManagerEndpoint = getEnvOrDefault("GCP_RESOURCE_MANAGER_ENDPOINT", "https://cloudresourcemanager.googleapis.com")
+	// CloudResourceManagerEndpoint is deprecated, use GetCloudResourceManagerEndpoint() instead
+	CloudResourceManagerEndpoint = "https://cloudresourcemanager.googleapis.com"
 
-	// ServiceUsageEndpoint is the GCP Service Usage API endpoint
-	ServiceUsageEndpoint = getEnvOrDefault("GCP_SERVICE_USAGE_ENDPOINT", "https://serviceusage.googleapis.com")
+	// ServiceUsageEndpoint is deprecated, use GetServiceUsageEndpoint() instead
+	ServiceUsageEndpoint = "https://serviceusage.googleapis.com"
 
-	// OAuth2Endpoint is the OAuth2 token endpoint
-	OAuth2Endpoint = getEnvOrDefault("OAUTH2_ENDPOINT", "https://oauth2.googleapis.com")
+	// OAuth2Endpoint is deprecated, use GetOAuth2Endpoint() instead
+	OAuth2Endpoint = "https://oauth2.googleapis.com"
+
+	// GoogleAPIsEndpoint is deprecated, use GetGoogleAPIsEndpoint() instead
+	GoogleAPIsEndpoint = "https://www.googleapis.com"
 )
+
+// GetCodeAssistEndpoint returns the current Gemini Cloud Assist API endpoint
+func GetCodeAssistEndpoint() string {
+	return getEnvOrDefault("GEMINI_API_ENDPOINT", "https://cloudcode-pa.googleapis.com")
+}
+
+// GetCloudResourceManagerEndpoint returns the current GCP Resource Manager API endpoint
+func GetCloudResourceManagerEndpoint() string {
+	return getEnvOrDefault("GCP_RESOURCE_MANAGER_ENDPOINT", "https://cloudresourcemanager.googleapis.com")
+}
+
+// GetServiceUsageEndpoint returns the current GCP Service Usage API endpoint
+func GetServiceUsageEndpoint() string {
+	return getEnvOrDefault("GCP_SERVICE_USAGE_ENDPOINT", "https://serviceusage.googleapis.com")
+}
+
+// GetOAuth2Endpoint returns the current OAuth2 token endpoint
+func GetOAuth2Endpoint() string {
+	return getEnvOrDefault("OAUTH2_ENDPOINT", "https://oauth2.googleapis.com")
+}
+
+// GetGoogleAPIsEndpoint returns the current Google APIs base endpoint for proxy
+func GetGoogleAPIsEndpoint() string {
+	endpoint := getEnvOrDefault("GOOGLE_APIS_ENDPOINT", "https://www.googleapis.com")
+	log.Printf("[DEBUG] GetGoogleAPIsEndpoint() called, returning: %s (from env: %s)", endpoint, os.Getenv("GOOGLE_APIS_ENDPOINT"))
+	return endpoint
+}
 
 // Client Configuration
 const CLIVersion = "0.1.5" // Match current gemini-cli version

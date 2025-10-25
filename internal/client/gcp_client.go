@@ -140,13 +140,16 @@ func (gc *GCPClient) ListProjects() ([]Project, error) {
 	for {
 		// Build the API URL using strings.Builder to avoid allocations
 		var urlBuilder strings.Builder
-		urlBuilder.WriteString(config.CloudResourceManagerEndpoint)
+		endpoint := config.GetCloudResourceManagerEndpoint()
+		urlBuilder.WriteString(endpoint)
 		urlBuilder.WriteString("/v1/projects")
 		if pageToken != "" {
 			urlBuilder.WriteString("?pageToken=")
 			urlBuilder.WriteString(pageToken)
 		}
 		url := urlBuilder.String()
+
+		log.Printf("[DEBUG] GCP ListProjects - Endpoint: %s, Full URL: %s", endpoint, url)
 
 		// Create the request
 		req, err := http.NewRequest("GET", url, nil)
@@ -234,7 +237,9 @@ func (gc *GCPClient) EnableService(projectID string, serviceName string) error {
 	}
 
 	// Enable the service
-	url := fmt.Sprintf("%s/v1/projects/%s/services/%s:enable", config.ServiceUsageEndpoint, projectID, serviceName)
+	endpoint := config.GetServiceUsageEndpoint()
+	url := fmt.Sprintf("%s/v1/projects/%s/services/%s:enable", endpoint, projectID, serviceName)
+	log.Printf("[DEBUG] GCP EnableService - Endpoint: %s, Service: %s, URL: %s", endpoint, serviceName, url)
 
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
@@ -276,7 +281,7 @@ func (gc *GCPClient) EnableService(projectID string, serviceName string) error {
 
 // isServiceEnabled checks if a service is already enabled for a project
 func (gc *GCPClient) isServiceEnabled(projectID string, serviceName string) (bool, error) {
-	url := fmt.Sprintf("%s/v1/projects/%s/services/%s", config.ServiceUsageEndpoint, projectID, serviceName)
+	url := fmt.Sprintf("%s/v1/projects/%s/services/%s", config.GetServiceUsageEndpoint(), projectID, serviceName)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

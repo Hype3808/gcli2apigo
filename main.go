@@ -127,6 +127,10 @@ func main() {
 	// Gemini routes
 	mux.HandleFunc("/v1beta/models", routes.HandleGeminiListModels)
 
+	// Google APIs proxy routes
+	mux.HandleFunc("/googleapis", routes.HandleGoogleAPIsInfo)
+	mux.HandleFunc("/googleapis/", routes.HandleGoogleAPIsProxy)
+
 	// Catch-all for Gemini proxy and root
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
@@ -184,8 +188,8 @@ func handleRoot(w http.ResponseWriter, r *http.Request, dashboardHandlers *dashb
 func handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
 		"name":        "gcli2apigo",
-		"description": "OpenAI-compatible API proxy for Google's Gemini models via gemini-cli",
-		"purpose":     "Provides both OpenAI-compatible endpoints (/v1/chat/completions) and native Gemini API endpoints for accessing Google's Gemini models",
+		"description": "OpenAI-compatible API proxy for Google's Gemini models via gemini-cli with Google APIs proxy support",
+		"purpose":     "Provides both OpenAI-compatible endpoints (/v1/chat/completions), native Gemini API endpoints for accessing Google's Gemini models, and Google APIs proxy functionality",
 		"version":     "1.0.0",
 		"endpoints": map[string]any{
 			"openai_compatible": map[string]string{
@@ -202,6 +206,11 @@ func handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 				"logout":      "/dashboard/logout",
 				"oauth_start": "/dashboard/oauth/start",
 				"credentials": "/dashboard/api/credentials",
+			},
+			"googleapis_proxy": map[string]string{
+				"info":    "/googleapis",
+				"proxy":   "/googleapis/{api_path}",
+				"example": "/googleapis/storage/v1/b",
 			},
 			"health": "/health",
 		},

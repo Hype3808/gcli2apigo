@@ -24,6 +24,7 @@ type Settings struct {
 	ResourceManagerEndpoint string `json:"resource_manager_endpoint"`
 	ServiceUsageEndpoint    string `json:"service_usage_endpoint"`
 	OAuth2Endpoint          string `json:"oauth2_endpoint"`
+	GoogleAPIsEndpoint      string `json:"google_apis_endpoint"`
 }
 
 // HandleGetSettings returns the current server settings (excluding password)
@@ -43,6 +44,7 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 		ResourceManagerEndpoint: os.Getenv("GCP_RESOURCE_MANAGER_ENDPOINT"),
 		ServiceUsageEndpoint:    os.Getenv("GCP_SERVICE_USAGE_ENDPOINT"),
 		OAuth2Endpoint:          os.Getenv("OAUTH2_ENDPOINT"),
+		GoogleAPIsEndpoint:      os.Getenv("GOOGLE_APIS_ENDPOINT"),
 	}
 
 	// Set defaults if empty
@@ -66,6 +68,9 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 	}
 	if settings.OAuth2Endpoint == "" {
 		settings.OAuth2Endpoint = "https://oauth2.googleapis.com"
+	}
+	if settings.GoogleAPIsEndpoint == "" {
+		settings.GoogleAPIsEndpoint = "https://www.googleapis.com"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -180,6 +185,9 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.OAuth2Endpoint != "" {
 		envVars["OAUTH2_ENDPOINT"] = settings.OAuth2Endpoint
 	}
+	if settings.GoogleAPIsEndpoint != "" {
+		envVars["GOOGLE_APIS_ENDPOINT"] = settings.GoogleAPIsEndpoint
+	}
 
 	log.Printf("[DEBUG] Saving settings to .env: %v", envVars)
 
@@ -249,6 +257,28 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	if settings.MaxRetries != "" {
 		os.Setenv("MAX_RETRY_ATTEMPTS", settings.MaxRetries)
 		log.Printf("[INFO] Max retry attempts updated in memory: %s", settings.MaxRetries)
+	}
+
+	// Update API endpoint environment variables for immediate effect
+	if settings.GeminiEndpoint != "" {
+		os.Setenv("GEMINI_API_ENDPOINT", settings.GeminiEndpoint)
+		log.Printf("[INFO] Gemini endpoint updated in environment: %s", settings.GeminiEndpoint)
+	}
+	if settings.ResourceManagerEndpoint != "" {
+		os.Setenv("GCP_RESOURCE_MANAGER_ENDPOINT", settings.ResourceManagerEndpoint)
+		log.Printf("[INFO] Resource Manager endpoint updated in environment: %s", settings.ResourceManagerEndpoint)
+	}
+	if settings.ServiceUsageEndpoint != "" {
+		os.Setenv("GCP_SERVICE_USAGE_ENDPOINT", settings.ServiceUsageEndpoint)
+		log.Printf("[INFO] Service Usage endpoint updated in environment: %s", settings.ServiceUsageEndpoint)
+	}
+	if settings.OAuth2Endpoint != "" {
+		os.Setenv("OAUTH2_ENDPOINT", settings.OAuth2Endpoint)
+		log.Printf("[INFO] OAuth2 endpoint updated in environment: %s", settings.OAuth2Endpoint)
+	}
+	if settings.GoogleAPIsEndpoint != "" {
+		os.Setenv("GOOGLE_APIS_ENDPOINT", settings.GoogleAPIsEndpoint)
+		log.Printf("[INFO] Google APIs endpoint updated in environment: %s", settings.GoogleAPIsEndpoint)
 	}
 
 	// Update proxy environment variables and recreate HTTP client if proxy changed

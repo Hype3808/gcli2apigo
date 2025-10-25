@@ -2076,6 +2076,15 @@ var dashboardTemplate = `<!DOCTYPE html>
                             <input type="text" id="settingOAuth2Endpoint" name="oauth2_endpoint" placeholder="{{index .T "settings.oauth2.placeholder"}}" value="">
                             <div class="settings-help-text">{{index .T "settings.oauth2.help"}}</div>
                         </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingGoogleAPIsEndpoint">
+                                {{index .T "settings.googleapis.label"}}
+                                <span class="settings-restart-badge">{{index .T "settings.restart_required"}}</span>
+                            </label>
+                            <input type="text" id="settingGoogleAPIsEndpoint" name="google_apis_endpoint" placeholder="{{index .T "settings.googleapis.placeholder"}}" value="">
+                            <div class="settings-help-text">{{index .T "settings.googleapis.help"}}</div>
+                        </div>
                     </form>
                 </div>
                 <div class="settings-actions">
@@ -2966,6 +2975,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                         document.getElementById('settingResourceManagerEndpoint').value = data.settings.resource_manager_endpoint || '';
                         document.getElementById('settingServiceUsageEndpoint').value = data.settings.service_usage_endpoint || '';
                         document.getElementById('settingOAuth2Endpoint').value = data.settings.oauth2_endpoint || '';
+                        document.getElementById('settingGoogleAPIsEndpoint').value = data.settings.google_apis_endpoint || '';
                     }
                 })
                 .catch(error => {
@@ -2986,7 +2996,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 const fields = [
                     'host', 'port', 'password', 'max_retries',
                     'gemini_endpoint', 'resource_manager_endpoint',
-                    'service_usage_endpoint', 'oauth2_endpoint'
+                    'service_usage_endpoint', 'oauth2_endpoint', 'google_apis_endpoint'
                 ];
                 
                 fields.forEach(field => {
