@@ -351,6 +351,10 @@ var dashboardTemplate = `<!DOCTYPE html>
 
         .page-header {
             margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
         }
 
         .page-title {
@@ -364,6 +368,13 @@ var dashboardTemplate = `<!DOCTYPE html>
         .page-subtitle {
             font-size: 14px;
             color: #888;
+        }
+
+        .page-header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-shrink: 0;
         }
 
         .stats-grid {
@@ -435,7 +446,7 @@ var dashboardTemplate = `<!DOCTYPE html>
 
         .actions {
             margin-bottom: 24px;
-            display: flex;
+            display: none;
             justify-content: space-between;
             align-items: center;
             gap: 16px;
@@ -443,6 +454,10 @@ var dashboardTemplate = `<!DOCTYPE html>
             background: #1a1a1a;
             border: 1px solid #2a2a2a;
             border-radius: 12px;
+        }
+
+        .actions.visible {
+            display: flex;
         }
 
         .actions-left {
@@ -1428,12 +1443,28 @@ var dashboardTemplate = `<!DOCTYPE html>
                 padding: 20px 16px;
             }
 
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
             .page-title {
                 font-size: 24px;
             }
 
             .page-subtitle {
                 font-size: 13px;
+            }
+
+            .page-header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .page-header-actions .btn-add,
+            .page-header-actions .btn-select-all {
+                width: 100%;
+                justify-content: center;
             }
 
             .stats-grid {
@@ -1624,12 +1655,21 @@ var dashboardTemplate = `<!DOCTYPE html>
                 padding: 16px 12px;
             }
 
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
             .page-title {
                 font-size: 20px;
             }
 
             .page-subtitle {
                 font-size: 12px;
+            }
+
+            .page-header-actions {
+                width: 100%;
             }
 
             .stats-grid {
@@ -1885,8 +1925,39 @@ var dashboardTemplate = `<!DOCTYPE html>
 
     <div class="container">
         <div class="page-header">
-            <h2 class="page-title">{{index .T "dashboard.page.title"}}</h2>
-            <p class="page-subtitle">{{index .T "dashboard.page.subtitle"}}</p>
+            <div>
+                <h2 class="page-title">{{index .T "dashboard.page.title"}}</h2>
+                <p class="page-subtitle">{{index .T "dashboard.page.subtitle"}}</p>
+            </div>
+            <div class="page-header-actions">
+                <div class="dropdown">
+                    <button class="btn-add dropdown-toggle" id="addCredentialBtn">
+                        <span>+</span>
+                        <span>{{index .T "actions.add"}}</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="dropdown-menu" id="addCredentialMenu">
+                        <a href="/dashboard/oauth/start" class="dropdown-item" id="oauthFlowBtn">
+                            <span class="dropdown-icon">🔐</span>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">{{index .T "add.oauth.title"}}</div>
+                                <div class="dropdown-item-desc">{{index .T "add.oauth.desc"}}</div>
+                            </div>
+                        </a>
+                        <button class="dropdown-item" id="uploadCredentialBtn">
+                            <span class="dropdown-icon">📁</span>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-title">{{index .T "add.upload.title"}}</div>
+                                <div class="dropdown-item-desc">{{index .T "add.upload.desc"}}</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn-select-all" id="selectAllBtn" data-select-text="{{index .T "actions.select.all"}}" data-deselect-text="{{index .T "actions.deselect.all"}}">
+                    <span>☑</span>
+                    <span id="selectAllText">{{index .T "actions.select.all"}}</span>
+                </button>
+            </div>
         </div>
 
         <!-- Stats Cards -->
@@ -1938,33 +2009,6 @@ var dashboardTemplate = `<!DOCTYPE html>
 
         <div class="actions">
             <div class="actions-left">
-                <div class="dropdown">
-                    <button class="btn-add dropdown-toggle" id="addCredentialBtn">
-                        <span>+</span>
-                        <span>{{index .T "actions.add"}}</span>
-                        <span class="dropdown-arrow">▼</span>
-                    </button>
-                    <div class="dropdown-menu" id="addCredentialMenu">
-                        <a href="/dashboard/oauth/start" class="dropdown-item" id="oauthFlowBtn">
-                            <span class="dropdown-icon">🔐</span>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">{{index .T "add.oauth.title"}}</div>
-                                <div class="dropdown-item-desc">{{index .T "add.oauth.desc"}}</div>
-                            </div>
-                        </a>
-                        <button class="dropdown-item" id="uploadCredentialBtn">
-                            <span class="dropdown-icon">📁</span>
-                            <div class="dropdown-item-content">
-                                <div class="dropdown-item-title">{{index .T "add.upload.title"}}</div>
-                                <div class="dropdown-item-desc">{{index .T "add.upload.desc"}}</div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-                <button class="btn-select-all" id="selectAllBtn" data-select-text="{{index .T "actions.select.all"}}" data-deselect-text="{{index .T "actions.deselect.all"}}">
-                    <span>☑</span>
-                    <span id="selectAllText">{{index .T "actions.select.all"}}</span>
-                </button>
                 <button class="btn-bulk-ban" id="bulkBanBtn">
                     <span>🚫</span>
                     <span>{{index .T "actions.ban.selected"}}</span>
@@ -1992,7 +2036,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 </div>
                 <div class="settings-modal-body">
                     <div class="settings-info-box">
-                        <p>{{index .T "settings.info"}}</p>
+                        <p>{{index .T "settings.info" | safeHTML}}</p>
                     </div>
                     
                     <form id="settingsForm">
@@ -2014,12 +2058,32 @@ var dashboardTemplate = `<!DOCTYPE html>
                             <div class="settings-help-text">{{index .T "settings.port.help"}}</div>
                         </div>
 
+                        <div class="settings-section-title">认证设置</div>
+
                         <div class="settings-form-group">
                             <label for="settingPassword">
-                                {{index .T "settings.password.label"}}
+                                面板密码
                             </label>
-                            <input type="password" id="settingPassword" name="password" placeholder="{{index .T "settings.password.placeholder"}}" value="">
+                            <input type="text" id="settingPassword" name="password" placeholder="留空则不修改" value="">
                             <div class="settings-help-text">{{index .T "settings.password.help"}}</div>
+                        </div>
+
+                        <div class="settings-form-group">
+                            <label for="settingAPIKey">
+                                API Key
+                            </label>
+                            <input type="text" id="settingAPIKey" name="api_key" placeholder="留空则不修改" value="">
+                            <div class="settings-help-text">{{index .T "settings.api_key.help"}}</div>
+                        </div>
+
+                        <div class="settings-section-title">服务器设置</div>
+
+                        <div class="settings-form-group">
+                            <label for="settingCompatibilityMode">
+                                <input type="checkbox" id="settingCompatibilityMode" name="compatibility_mode" value="true" style="width: auto; margin-right: 8px;">
+                                {{index .T "settings.compatibility_mode.label"}}
+                            </label>
+                            <div class="settings-help-text">{{index .T "settings.compatibility_mode.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
@@ -2135,7 +2199,7 @@ var dashboardTemplate = `<!DOCTYPE html>
                 {{if not .Expiry.IsZero}}
                 <div class="credential-expiry" data-expiry="{{.Expiry.Format "2006-01-02T15:04:05Z07:00"}}">
                     <span class="expiry-icon">⏰</span>
-                    <span class="expiry-label">Expires:</span>
+                    <span class="expiry-label">{{index $.T "expiry.label"}}</span>
                     <span class="expiry-time">{{.Expiry.Format "2006-01-02 15:04:05"}}</span>
                 </div>
                 {{end}}
@@ -2198,7 +2262,7 @@ var dashboardTemplate = `<!DOCTYPE html>
         <div class="empty-state">
             <div class="empty-state-icon">📭</div>
             <h2>{{index .T "empty.title"}}</h2>
-            <p>{{index .T "empty.message"}}</p>
+            <p>{{index .T "empty.message" | safeHTML}}</p>
         </div>
         {{end}}
     </div>
@@ -2222,7 +2286,7 @@ var dashboardTemplate = `<!DOCTYPE html>
         ` + languageSwitcherJS + `
 
         // Translations object for JavaScript
-        const T = {
+    const T = {
             'confirm.ban': '{{index .T "confirm.ban"}}',
             'confirm.unban': '{{index .T "confirm.unban"}}',
             'confirm.delete': '{{index .T "confirm.delete"}}',
@@ -2238,7 +2302,11 @@ var dashboardTemplate = `<!DOCTYPE html>
             'error.settings.save': '{{index .T "error.settings.save"}}',
             'error.settings.load': '{{index .T "error.settings.load"}}',
             'success.deleted.multiple': '{{index .T "success.deleted.multiple"}}',
-            'success.settings.saved': '{{index .T "success.settings.saved"}}'
+            'success.settings.saved': '{{index .T "success.settings.saved"}}',
+            'settings.restart_notify': '{{index .T "settings.restart_notify"}}',
+            'expiry.label': '{{index .T "expiry.label"}}',
+            'expiry.expired': '{{index .T "expiry.expired"}}',
+            'expiry.expires_in': '{{index .T "expiry.expires_in"}}'
         };
 
         // Toast notification system
@@ -2307,16 +2375,24 @@ var dashboardTemplate = `<!DOCTYPE html>
             const count = selectedProjects.size;
             selectedCount.textContent = count;
             
+            const actionsContainer = document.querySelector('.actions');
+            
             if (count > 0) {
                 bulkDeleteBtn.classList.add('visible');
                 bulkBanBtn.classList.add('visible');
                 bulkUnbanBtn.classList.add('visible');
                 selectionInfo.classList.add('visible');
+                if (actionsContainer) {
+                    actionsContainer.classList.add('visible');
+                }
             } else {
                 bulkDeleteBtn.classList.remove('visible');
                 bulkBanBtn.classList.remove('visible');
                 bulkUnbanBtn.classList.remove('visible');
                 selectionInfo.classList.remove('visible');
+                if (actionsContainer) {
+                    actionsContainer.classList.remove('visible');
+                }
             }
 
             // Update select all button state
@@ -2578,11 +2654,11 @@ var dashboardTemplate = `<!DOCTYPE html>
                 if (timeUntilExpiry < 0) {
                     element.classList.add('expired');
                     const timeLabel = element.querySelector('.expiry-label');
-                    if (timeLabel) timeLabel.textContent = 'Expired:';
+                    if (timeLabel) timeLabel.textContent = T['expiry.expired'];
                 } else if (hoursUntilExpiry < 24) {
                     element.classList.add('expiring-soon');
                     const timeLabel = element.querySelector('.expiry-label');
-                    if (timeLabel) timeLabel.textContent = 'Expires in:';
+                    if (timeLabel) timeLabel.textContent = T['expiry.expires_in'];
                     
                     // Show relative time for expiring soon
                     const timeSpan = element.querySelector('.expiry-time');
@@ -2968,7 +3044,9 @@ var dashboardTemplate = `<!DOCTYPE html>
                     if (data.success) {
                         document.getElementById('settingHost').value = data.settings.host || '';
                         document.getElementById('settingPort').value = data.settings.port || '';
-                        document.getElementById('settingPassword').value = ''; // Never show current password
+                        document.getElementById('settingPassword').value = data.settings.password || '';
+                        document.getElementById('settingAPIKey').value = data.settings.api_key || '';
+                        document.getElementById('settingCompatibilityMode').checked = (data.settings.compatibility_mode === 'true');
                         document.getElementById('settingMaxRetries').value = data.settings.max_retries || '5';
                         document.getElementById('settingProxy').value = data.settings.proxy || '';
                         document.getElementById('settingGeminiEndpoint').value = data.settings.gemini_endpoint || '';
@@ -2991,10 +3069,10 @@ var dashboardTemplate = `<!DOCTYPE html>
                 
                 // Build settings object
                 // For most fields: only send if non-empty (preserves existing)
-                // For proxy: always send to allow clearing
+                // For proxy and compatibility_mode: always send to allow clearing/toggling
                 const settings = {};
                 const fields = [
-                    'host', 'port', 'password', 'max_retries',
+                    'host', 'port', 'password', 'api_key', 'max_retries',
                     'gemini_endpoint', 'resource_manager_endpoint',
                     'service_usage_endpoint', 'oauth2_endpoint', 'google_apis_endpoint'
                 ];
@@ -3009,6 +3087,10 @@ var dashboardTemplate = `<!DOCTYPE html>
                 // Always include proxy field (even if empty) to allow clearing
                 const proxyValue = formData.get('proxy');
                 settings['proxy'] = proxyValue ? proxyValue.trim() : '';
+                
+                // Always include compatibility_mode field to allow toggling
+                const compatibilityMode = document.getElementById('settingCompatibilityMode').checked;
+                settings['compatibility_mode'] = compatibilityMode ? 'true' : 'false';
 
                 loading.show('Saving settings...');
 
@@ -3024,7 +3106,8 @@ var dashboardTemplate = `<!DOCTYPE html>
                     loading.hide();
                     if (data.success) {
                         settingsModal.classList.remove('active');
-                        toast.show(data.message + ' Please restart the server for changes to take effect.', 'success');
+                        // Use localized translations for success + restart notice
+                        toast.show(T['success.settings.saved'] + ' ' + T['settings.restart_notify'], 'success');
                     } else {
                         toast.show(data.error || T['error.settings.save'], 'error');
                     }
@@ -3641,7 +3724,7 @@ var oauthCallbackTemplate = `<!DOCTYPE html>
 func RenderLogin(w http.ResponseWriter, errorMsg string, lang i18n.Language) {
 	log.Printf("[DEBUG] Rendering login page (error: %v, lang: %s)", errorMsg != "", lang)
 
-	tmpl, err := template.New("login").Parse(loginTemplate)
+	tmpl, err := template.New("login").Funcs(template.FuncMap{"safeHTML": func(s string) template.HTML { return template.HTML(s) }}).Parse(loginTemplate)
 	if err != nil {
 		log.Printf("[ERROR] Failed to parse login template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -3672,7 +3755,7 @@ func RenderLogin(w http.ResponseWriter, errorMsg string, lang i18n.Language) {
 func RenderDashboard(w http.ResponseWriter, credentials []CredentialInfo, lang i18n.Language) {
 	log.Printf("[DEBUG] Rendering dashboard page with %d credentials (lang: %s)", len(credentials), lang)
 
-	tmpl, err := template.New("dashboard").Parse(dashboardTemplate)
+	tmpl, err := template.New("dashboard").Funcs(template.FuncMap{"safeHTML": func(s string) template.HTML { return template.HTML(s) }}).Parse(dashboardTemplate)
 	if err != nil {
 		log.Printf("[ERROR] Failed to parse dashboard template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -3703,7 +3786,7 @@ func RenderDashboard(w http.ResponseWriter, credentials []CredentialInfo, lang i
 func RenderOAuthCallback(w http.ResponseWriter, status string, message string) {
 	log.Printf("[INFO] Rendering OAuth callback page (status: %s)", status)
 
-	tmpl, err := template.New("oauthCallback").Parse(oauthCallbackTemplate)
+	tmpl, err := template.New("oauthCallback").Funcs(template.FuncMap{"safeHTML": func(s string) template.HTML { return template.HTML(s) }}).Parse(oauthCallbackTemplate)
 	if err != nil {
 		log.Printf("[ERROR] Failed to parse OAuth callback template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -3732,7 +3815,7 @@ func RenderOAuthCallback(w http.ResponseWriter, status string, message string) {
 func RenderOAuthCallbackStream(w http.ResponseWriter) {
 	log.Printf("[INFO] Rendering streaming OAuth callback page")
 
-	tmpl, err := template.New("oauthCallbackStream").Parse(oauthCallbackStreamTemplate)
+	tmpl, err := template.New("oauthCallbackStream").Funcs(template.FuncMap{"safeHTML": func(s string) template.HTML { return template.HTML(s) }}).Parse(oauthCallbackStreamTemplate)
 	if err != nil {
 		log.Printf("[ERROR] Failed to parse OAuth callback stream template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

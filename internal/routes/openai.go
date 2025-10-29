@@ -314,12 +314,21 @@ func HandleChatCompletions(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("OpenAI chat completion request: model=%s, stream=%v", request.Model, request.Stream)
 
-	// Detect and handle -fake suffix for fake stream mode
+	// Detect and handle fake stream mode based on language setting
 	modelName := request.Model
-	isFakeStream := strings.HasSuffix(modelName, "-fake")
-	if isFakeStream {
-		// Strip -fake suffix before forwarding to API
+	isFakeStream := false
+
+	// Check for English format: modelID-fake
+	if strings.HasSuffix(modelName, "-fake") {
+		isFakeStream = true
 		modelName = strings.TrimSuffix(modelName, "-fake")
+	} else if strings.HasPrefix(modelName, "假流式/") {
+		// Check for Chinese format: 假流式/modelID
+		isFakeStream = true
+		modelName = strings.TrimPrefix(modelName, "假流式/")
+	}
+
+	if isFakeStream {
 		request.Model = modelName
 		log.Printf("Detected fake stream mode, stripped model name: %s", modelName)
 
@@ -874,9 +883,9 @@ func HandleListModels(w http.ResponseWriter, r *http.Request) {
 			"parent": nil,
 		})
 
-		// Add -fake variant only for models that support fake streaming
+		// Add fake streaming variant only for models that support it
 		if isFakeStreamingAllowed(modelID) {
-			fakeModelID := modelID + "-fake"
+			fakeModelID := config.GetFakeModelName(modelID)
 			openaiModels = append(openaiModels, map[string]interface{}{
 				"id":       fakeModelID,
 				"object":   "model",

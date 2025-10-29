@@ -111,13 +111,17 @@ var GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
 // Debug Logging
 var DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
 
+// Default Language
+var DefaultLanguage = getEnvOrDefault("DEFAULT_LANGUAGE", "zh")
+
 // ReloadConfig reloads configuration from environment variables
 // Call this after loading .env file to pick up new values
 func ReloadConfig() {
 	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
 	DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
-	log.Printf("[INFO] Configuration reloaded: Password set=%v, Debug=%v",
-		GeminiAuthPassword != "123456", DebugLoggingEnabled)
+	DefaultLanguage = getEnvOrDefault("DEFAULT_LANGUAGE", "zh")
+	log.Printf("[INFO] Configuration reloaded: Password set=%v, Debug=%v, Language=%s",
+		GeminiAuthPassword != "123456", DebugLoggingEnabled, DefaultLanguage)
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -145,6 +149,23 @@ func GetMaxRetryAttempts() int {
 // IsDebugEnabled returns true if debug logging is enabled
 func IsDebugEnabled() bool {
 	return DebugLoggingEnabled
+}
+
+// GetDefaultLanguage returns the default language setting
+func GetDefaultLanguage() string {
+	return DefaultLanguage
+}
+
+// GetFakeModelName returns the fake streaming model name based on language setting
+// For English (en): returns "modelID-fake" (e.g., "gemini-2.5-pro-fake")
+// For Chinese (zh): returns "假流式/modelID" (e.g., "假流式/gemini-2.5-pro")
+func GetFakeModelName(modelID string) string {
+	lang := GetDefaultLanguage()
+	if lang == "en" {
+		return modelID + "-fake"
+	}
+	// Default to Chinese format
+	return "假流式/" + modelID
 }
 
 // SafetySetting represents a safety setting for the Gemini API

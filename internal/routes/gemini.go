@@ -29,11 +29,30 @@ func HandleGeminiListModels(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Gemini models list requested")
 
-	modelsResponse := map[string]interface{}{
-		"models": config.SupportedModels,
+	// Build models list including fake streaming variants
+	allModels := make([]config.Model, 0, len(config.SupportedModels)*2)
+
+	// Add base models
+	allModels = append(allModels, config.SupportedModels...)
+
+	// Add fake streaming variants for supported models
+	for _, model := range config.SupportedModels {
+		modelID := strings.TrimPrefix(model.Name, "models/")
+		if isFakeStreamingAllowed(modelID) {
+			fakeModelName := config.GetFakeModelName(modelID)
+			fakeModel := model
+			fakeModel.Name = "models/" + fakeModelName
+			fakeModel.DisplayName = fakeModel.DisplayName + " (Fake Streaming)"
+			fakeModel.Description = fakeModel.Description + " - Fake streaming variant"
+			allModels = append(allModels, fakeModel)
+		}
 	}
 
-	log.Printf("Returning %d Gemini models", len(config.SupportedModels))
+	modelsResponse := map[string]interface{}{
+		"models": allModels,
+	}
+
+	log.Printf("Returning %d Gemini models (including fake streaming variants)", len(allModels))
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(modelsResponse)
@@ -90,6 +109,40 @@ func HandleGeminiProxy(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Could not extract model name from path: %s", r.URL.Path)
 		http.Error(w, fmt.Sprintf(`{"error":{"message":"Could not extract model name from path: %s","code":400}}`, r.URL.Path), http.StatusBadRequest)
 		return
+	}
+
+	// Detect and handle fake stream mode based on language setting
+	isFakeStream := false
+
+	// Check for English format: modelID-fake
+	if strings.HasSuffix(modelName, "-fake") {
+		isFakeStream = true
+		modelName = strings.TrimSuffix(modelName, "-fake")
+	} else if strings.HasPrefix(modelName, "假流式/") {
+		// Check for Chinese format: 假流式/modelID
+		isFakeStream = true
+		modelName = strings.TrimPrefix(modelName, "假流式/")
+	}
+
+	if isFakeStream {
+		log.Printf("Detected fake stream mode in Gemini proxy, stripped model name: %s", modelName)
+
+		// Validate that fake streaming is only allowed for specific models
+		if !isFakeStreamingAllowed(modelName) {
+			errorData := map[string]interface{}{
+				"error": map[string]interface{}{
+					"message": fmt.Sprintf("Fake streaming is not supported for model: %s. Only gemini-2.5-pro (and preview models) and gemini flash models (excluding gemini-flash-image) support fake streaming.", modelName),
+					"code":    400,
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorData)
+			return
+		}
+
+		// Force streaming mode for fake stream
+		isStreaming = true
 	}
 
 	// Parse the incoming request
