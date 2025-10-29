@@ -106,7 +106,11 @@ func init() {
 }
 
 // Authentication
-var GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
+var (
+	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456") // Dashboard only
+	GeminiAPIKey       = getEnvOrDefault("GEMINI_API_KEY", "123456")       // API requests only
+	Password           = os.Getenv("PASSWORD")                             // Both dashboard and API
+)
 
 // Debug Logging
 var DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
@@ -118,10 +122,12 @@ var DefaultLanguage = getEnvOrDefault("DEFAULT_LANGUAGE", "zh")
 // Call this after loading .env file to pick up new values
 func ReloadConfig() {
 	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
+	GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
+	Password = os.Getenv("PASSWORD")
 	DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
 	DefaultLanguage = getEnvOrDefault("DEFAULT_LANGUAGE", "zh")
-	log.Printf("[INFO] Configuration reloaded: Password set=%v, Debug=%v, Language=%s",
-		GeminiAuthPassword != "123456", DebugLoggingEnabled, DefaultLanguage)
+	log.Printf("[INFO] Configuration reloaded: AuthPassword set=%v, APIKey set=%v, Password set=%v, Debug=%v, Language=%s",
+		GeminiAuthPassword != "123456", GeminiAPIKey != "", Password != "", DebugLoggingEnabled, DefaultLanguage)
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -144,6 +150,18 @@ func getEnvOrDefaultInt(key string, defaultValue int) int {
 // This reads from environment variable each time to allow dynamic updates
 func GetMaxRetryAttempts() int {
 	return getEnvOrDefaultInt("MAX_RETRY_ATTEMPTS", 5)
+}
+
+// GetCredentialRateLimitRPS returns the max RPS per credential
+// Lower values = more conservative, higher values = more aggressive
+// Default: 8 RPS per credential (conservative for shared IP scenarios)
+func GetCredentialRateLimitRPS() int {
+	return getEnvOrDefaultInt("CREDENTIAL_RATE_LIMIT_RPS", 8)
+}
+
+// IsRateLimitingEnabled returns whether credential rate limiting is enabled
+func IsRateLimitingEnabled() bool {
+	return os.Getenv("DISABLE_RATE_LIMITING") != "true"
 }
 
 // IsDebugEnabled returns true if debug logging is enabled

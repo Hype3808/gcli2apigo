@@ -17,7 +17,9 @@ import (
 type Settings struct {
 	Host                    string `json:"host"`
 	Port                    string `json:"port"`
-	Password                string `json:"password,omitempty"` // omitempty to not expose in GET
+	Password                string `json:"password,omitempty"`             // omitempty to not expose in GET
+	GeminiAuthPassword      string `json:"gemini_auth_password,omitempty"` // Dashboard only
+	GeminiAPIKey            string `json:"gemini_api_key,omitempty"`       // API only
 	MaxRetries              string `json:"max_retries"`
 	Proxy                   string `json:"proxy"`
 	GeminiEndpoint          string `json:"gemini_endpoint"`
@@ -27,7 +29,7 @@ type Settings struct {
 	GoogleAPIsEndpoint      string `json:"google_apis_endpoint"`
 }
 
-// HandleGetSettings returns the current server settings (excluding password)
+// HandleGetSettings returns the current server settings (including password values)
 func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -38,6 +40,9 @@ func (dh *DashboardHandlers) HandleGetSettings(w http.ResponseWriter, r *http.Re
 	settings := Settings{
 		Host:                    os.Getenv("HOST"),
 		Port:                    os.Getenv("PORT"),
+		Password:                os.Getenv("PASSWORD"),
+		GeminiAuthPassword:      os.Getenv("GEMINI_AUTH_PASSWORD"),
+		GeminiAPIKey:            os.Getenv("GEMINI_API_KEY"),
 		MaxRetries:              os.Getenv("MAX_RETRY_ATTEMPTS"),
 		Proxy:                   proxyValue,
 		GeminiEndpoint:          os.Getenv("GEMINI_API_ENDPOINT"),
@@ -139,15 +144,37 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	// Update settings - only update if value is provided (not empty)
 	// Existing values in envVars are preserved if not updated
 	// This allows partial updates without losing other settings
+	// Special handling for passwords: empty string means unset (delete from env)
 	if settings.Host != "" {
 		envVars["HOST"] = settings.Host
 	}
 	if settings.Port != "" {
 		envVars["PORT"] = settings.Port
 	}
-	if settings.Password != "" {
-		envVars["GEMINI_AUTH_PASSWORD"] = settings.Password
+
+	// Handle PASSWORD - check if it was explicitly sent (even if empty)
+	// We use a special marker "__UNSET__" to indicate intentional removal
+	if settings.Password == "__UNSET__" {
+		delete(envVars, "PASSWORD")
+		log.Printf("[INFO] PASSWORD unset")
+	} else if settings.Password != "" {
+		envVars["PASSWORD"] = settings.Password
 	}
+
+	if settings.GeminiAuthPassword == "__UNSET__" {
+		delete(envVars, "GEMINI_AUTH_PASSWORD")
+		log.Printf("[INFO] GEMINI_AUTH_PASSWORD unset")
+	} else if settings.GeminiAuthPassword != "" {
+		envVars["GEMINI_AUTH_PASSWORD"] = settings.GeminiAuthPassword
+	}
+
+	if settings.GeminiAPIKey == "__UNSET__" {
+		delete(envVars, "GEMINI_API_KEY")
+		log.Printf("[INFO] GEMINI_API_KEY unset")
+	} else if settings.GeminiAPIKey != "" {
+		envVars["GEMINI_API_KEY"] = settings.GeminiAPIKey
+	}
+
 	if settings.MaxRetries != "" {
 		envVars["MAX_RETRY_ATTEMPTS"] = settings.MaxRetries
 	}
@@ -198,7 +225,7 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 
 	// Write in a consistent order
 	keys := []string{
-		"HOST", "PORT", "GEMINI_AUTH_PASSWORD", "MAX_RETRY_ATTEMPTS",
+		"HOST", "PORT", "PASSWORD", "GEMINI_AUTH_PASSWORD", "GEMINI_API_KEY", "MAX_RETRY_ATTEMPTS",
 		"HTTP_PROXY", "HTTPS_PROXY",
 		"GEMINI_API_ENDPOINT", "GCP_RESOURCE_MANAGER_ENDPOINT",
 		"GCP_SERVICE_USAGE_ENDPOINT", "OAUTH2_ENDPOINT", "GOOGLE_APIS_ENDPOINT",
@@ -250,9 +277,34 @@ func (dh *DashboardHandlers) HandleSaveSettings(w http.ResponseWriter, r *http.R
 	log.Printf("[INFO] Settings saved successfully to %s", envPath)
 
 	// Update in-memory config for settings that don't require restart
-	if settings.Password != "" {
-		config.GeminiAuthPassword = settings.Password
-		log.Printf("[INFO] Password updated in memory")
+	if settings.Password == "__UNSET__" {
+		config.Password = ""
+		os.Unsetenv("PASSWORD")
+		log.Printf("[INFO] PASSWORD unset in memory")
+	} else if settings.Password != "" {
+		config.Password = settings.Password
+		os.Setenv("PASSWORD", settings.Password)
+		log.Printf("[INFO] PASSWORD updated in memory")
+	}
+
+	if settings.GeminiAuthPassword == "__UNSET__" {
+		config.GeminiAuthPassword = ""
+		os.Unsetenv("GEMINI_AUTH_PASSWORD")
+		log.Printf("[INFO] GEMINI_AUTH_PASSWORD unset in memory")
+	} else if settings.GeminiAuthPassword != "" {
+		config.GeminiAuthPassword = settings.GeminiAuthPassword
+		os.Setenv("GEMINI_AUTH_PASSWORD", settings.GeminiAuthPassword)
+		log.Printf("[INFO] GEMINI_AUTH_PASSWORD updated in memory")
+	}
+
+	if settings.GeminiAPIKey == "__UNSET__" {
+		config.GeminiAPIKey = ""
+		os.Unsetenv("GEMINI_API_KEY")
+		log.Printf("[INFO] GEMINI_API_KEY unset in memory")
+	} else if settings.GeminiAPIKey != "" {
+		config.GeminiAPIKey = settings.GeminiAPIKey
+		os.Setenv("GEMINI_API_KEY", settings.GeminiAPIKey)
+		log.Printf("[INFO] GEMINI_API_KEY updated in memory")
 	}
 	if settings.MaxRetries != "" {
 		os.Setenv("MAX_RETRY_ATTEMPTS", settings.MaxRetries)

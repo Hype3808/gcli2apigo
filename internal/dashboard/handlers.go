@@ -63,8 +63,17 @@ func (dh *DashboardHandlers) HandleLogin(w http.ResponseWriter, r *http.Request)
 		password = r.FormValue("password")
 	}
 
-	// Validate password against GEMINI_AUTH_PASSWORD
-	if password != config.GeminiAuthPassword {
+	// Validate password - if PASSWORD is set, it overrides GEMINI_AUTH_PASSWORD
+	isValid := false
+	if config.Password != "" {
+		// If PASSWORD is set, only accept PASSWORD
+		isValid = (password == config.Password)
+	} else {
+		// Otherwise, accept GEMINI_AUTH_PASSWORD
+		isValid = (password == config.GeminiAuthPassword)
+	}
+
+	if !isValid {
 		log.Printf("[WARN] Failed login attempt from %s", r.RemoteAddr)
 
 		// Return error based on content type

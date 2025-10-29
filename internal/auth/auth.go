@@ -25,6 +25,7 @@ var (
 	userProjectID   string
 	oauthConfig     *oauth2.Config
 	credentialPool  *CredentialPool
+	rateLimitedPool *RateLimitedCredentialPool
 	onboardingCache *OnboardingCache
 )
 
@@ -38,25 +39,30 @@ func init() {
 	}
 }
 
-// AuthenticateUser authenticates the user with multiple methods
+// AuthenticateUser authenticates the user with API key
+// Priority: PASSWORD (if set, overrides all) > GEMINI_API_KEY
 func AuthenticateUser(r *http.Request) (string, error) {
 	// Check for API key in query parameters first
 	apiKey := r.URL.Query().Get("key")
-	if apiKey != "" && apiKey == config.GeminiAuthPassword {
-		return "api_key_user", nil
+	if apiKey != "" {
+		if isValidAPIKey(apiKey) {
+			return "api_key_user", nil
+		}
 	}
 
 	// Check for API key in x-goog-api-key header
 	googAPIKey := r.Header.Get("x-goog-api-key")
-	if googAPIKey != "" && googAPIKey == config.GeminiAuthPassword {
-		return "goog_api_key_user", nil
+	if googAPIKey != "" {
+		if isValidAPIKey(googAPIKey) {
+			return "goog_api_key_user", nil
+		}
 	}
 
 	// Check for API key in Authorization header (Bearer token format)
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		bearerToken := strings.TrimPrefix(authHeader, "Bearer ")
-		if bearerToken == config.GeminiAuthPassword {
+		if isValidAPIKey(bearerToken) {
 			return "bearer_user", nil
 		}
 	}
@@ -70,7 +76,7 @@ func AuthenticateUser(r *http.Request) (string, error) {
 			parts := strings.SplitN(decoded, ":", 2)
 			if len(parts) == 2 {
 				username, password := parts[0], parts[1]
-				if password == config.GeminiAuthPassword {
+				if isValidAPIKey(password) {
 					return username, nil
 				}
 			}
@@ -78,6 +84,22 @@ func AuthenticateUser(r *http.Request) (string, error) {
 	}
 
 	return "", errors.New("invalid authentication credentials")
+}
+
+// isValidAPIKey checks if the provided key is valid for API authentication
+// Priority: PASSWORD (if set, overrides all) > GEMINI_API_KEY
+func isValidAPIKey(key string) bool {
+	// If PASSWORD is set, it overrides everything for API authentication
+	if config.Password != "" {
+		return key == config.Password
+	}
+
+	// Otherwise check GEMINI_API_KEY
+	if config.GeminiAPIKey != "" && key == config.GeminiAPIKey {
+		return true
+	}
+
+	return false
 }
 
 // SaveCredentials saves credentials to file (used for updating project_id in existing files)
@@ -193,7 +215,7 @@ func OnboardUser(token *oauth2.Token, projectID string) error {
 				TokenURL: config.GetOAuth2Endpoint() + "/token",
 			},
 		}
-		
+
 		log.Printf("[DEBUG] OnboardUser token refresh - Token URL: %s", tokenConfig.Endpoint.TokenURL)
 
 		newToken, err := tokenConfig.TokenSource(context.Background(), token).Token()
@@ -364,7 +386,7 @@ func makeAPIRequest(token *oauth2.Token, endpoint string, payload map[string]int
 	// Use dynamic endpoint getter to support runtime configuration changes
 	apiEndpoint := config.GetCodeAssistEndpoint()
 	url := apiEndpoint + endpoint
-	
+
 	log.Printf("[DEBUG] makeAPIRequest - Endpoint: %s, Path: %s, Full URL: %s", apiEndpoint, endpoint, url)
 
 	jsonData, err := json.Marshal(payload)
@@ -422,6 +444,19 @@ func InitializeCredentialPool() error {
 	// Create new credential pool
 	credentialPool = NewCredentialPool()
 
+	// Create rate-limited pool with configured RPS limit
+	credentialRateLimitRPS := config.GetCredentialRateLimitRPS()
+	minInterval := time.Second / time.Duration(credentialRateLimitRPS)
+	rateLimitedPool = NewRateLimitedCredentialPool(minInterval)
+	rateLimitedPool.CredentialPool = credentialPool
+
+	if config.IsRateLimitingEnabled() {
+		log.Printf("[INFO] Rate-limited credential pool initialized (max %d RPS per credential, min interval: %v)",
+			credentialRateLimitRPS, minInterval)
+	} else {
+		log.Printf("[WARN] Rate limiting is DISABLED - may cause 429 errors at high RPS")
+	}
+
 	// Get credentials folder path from config
 	credsFolder := config.OAuthCredsFolder
 
@@ -469,17 +504,29 @@ func InitializeCredentialPool() error {
 	return nil
 }
 
-// GetCredentialForRequest selects a random credential from the pool for an API request
+// GetCredentialForRequest selects a credential from the pool for an API request
+// Uses rate-limited round-robin selection if enabled, otherwise random selection
 func GetCredentialForRequest() (*CredentialEntry, error) {
 	// Check if credential pool is initialized
 	if credentialPool == nil {
 		return nil, errors.New("credential pool not initialized")
 	}
 
-	// Get a random credential from the pool
-	credEntry, err := credentialPool.GetRandomCredential()
-	if err != nil {
-		return nil, err
+	var credEntry *CredentialEntry
+	var err error
+
+	// Use rate-limited pool if enabled
+	if config.IsRateLimitingEnabled() && rateLimitedPool != nil {
+		credEntry, err = rateLimitedPool.GetCredentialWithRateLimit()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Fallback to random selection
+		credEntry, err = credentialPool.GetRandomCredential()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Log selected credential's project ID at debug level

@@ -1152,6 +1152,52 @@ var dashboardTemplate = `<!DOCTYPE html>
             color: #666;
         }
 
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input-wrapper input {
+            padding-right: 80px;
+        }
+
+        .password-toggle-btn,
+        .password-clear-btn {
+            position: absolute;
+            right: 0;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+            height: 100%;
+        }
+
+        .password-toggle-btn {
+            right: 32px;
+        }
+
+        .password-clear-btn {
+            right: 4px;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .password-toggle-btn:hover,
+        .password-clear-btn:hover {
+            color: #e0e0e0;
+        }
+
+        .password-toggle-btn .eye-icon {
+            width: 20px;
+            height: 20px;
+        }
+
         .settings-help-text {
             font-size: 12px;
             color: #888;
@@ -2058,33 +2104,60 @@ var dashboardTemplate = `<!DOCTYPE html>
                             <div class="settings-help-text">{{index .T "settings.port.help"}}</div>
                         </div>
 
-                        <div class="settings-section-title">认证设置</div>
+                        <div class="settings-section-title">{{index .T "settings.auth.title"}}</div>
 
                         <div class="settings-form-group">
                             <label for="settingPassword">
-                                面板密码
+                                {{index .T "settings.password.label"}}
                             </label>
-                            <input type="text" id="settingPassword" name="password" placeholder="留空则不修改" value="">
+                            <div class="password-input-wrapper">
+                                <input type="password" id="settingPassword" name="password" placeholder="{{index .T "settings.password.placeholder"}}" value="" data-original-value="">
+                                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('settingPassword')" tabindex="-1">
+                                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                                <button type="button" class="password-clear-btn" onclick="clearPassword('settingPassword')" title="Clear password" tabindex="-1">×</button>
+                            </div>
                             <div class="settings-help-text">{{index .T "settings.password.help"}}</div>
                         </div>
 
                         <div class="settings-form-group">
-                            <label for="settingAPIKey">
-                                API Key
+                            <label for="settingGeminiAuthPassword">
+                                {{index .T "settings.gemini_auth_password.label"}}
                             </label>
-                            <input type="text" id="settingAPIKey" name="api_key" placeholder="留空则不修改" value="">
-                            <div class="settings-help-text">{{index .T "settings.api_key.help"}}</div>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="settingGeminiAuthPassword" name="gemini_auth_password" placeholder="{{index .T "settings.gemini_auth_password.placeholder"}}" value="" data-original-value="">
+                                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('settingGeminiAuthPassword')" tabindex="-1">
+                                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                                <button type="button" class="password-clear-btn" onclick="clearPassword('settingGeminiAuthPassword')" title="Clear password" tabindex="-1">×</button>
+                            </div>
+                            <div class="settings-help-text">{{index .T "settings.gemini_auth_password.help"}}</div>
                         </div>
-
-                        <div class="settings-section-title">服务器设置</div>
 
                         <div class="settings-form-group">
-                            <label for="settingCompatibilityMode">
-                                <input type="checkbox" id="settingCompatibilityMode" name="compatibility_mode" value="true" style="width: auto; margin-right: 8px;">
-                                {{index .T "settings.compatibility_mode.label"}}
+                            <label for="settingGeminiAPIKey">
+                                {{index .T "settings.gemini_api_key.label"}}
                             </label>
-                            <div class="settings-help-text">{{index .T "settings.compatibility_mode.help"}}</div>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="settingGeminiAPIKey" name="gemini_api_key" placeholder="{{index .T "settings.gemini_api_key.placeholder"}}" value="" data-original-value="">
+                                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('settingGeminiAPIKey')" tabindex="-1">
+                                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                                <button type="button" class="password-clear-btn" onclick="clearPassword('settingGeminiAPIKey')" title="Clear password" tabindex="-1">×</button>
+                            </div>
+                            <div class="settings-help-text">{{index .T "settings.gemini_api_key.help"}}</div>
                         </div>
+
+                        <div class="settings-section-title">{{index .T "settings.server.title"}}</div>
 
                         <div class="settings-form-group">
                             <label for="settingMaxRetries">
@@ -3036,6 +3109,42 @@ var dashboardTemplate = `<!DOCTYPE html>
             }
         });
 
+        // Toggle password visibility
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
+            }
+        }
+
+        // Clear password field
+        function clearPassword(inputId) {
+            const input = document.getElementById(inputId);
+            input.value = '';
+            input.setAttribute('data-clear-requested', 'true');
+        }
+
+        // Setup password field listeners to clear the clear-requested flag when user types
+        function setupPasswordFieldListeners() {
+            const passwordFields = ['settingPassword', 'settingGeminiAuthPassword', 'settingGeminiAPIKey'];
+            passwordFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', function() {
+                        // If user types anything, clear the clear-requested flag
+                        if (this.value !== '') {
+                            this.removeAttribute('data-clear-requested');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Call setup after DOM is ready
+        setupPasswordFieldListeners();
+
         // Load current settings
         function loadCurrentSettings() {
             fetch('/dashboard/api/settings')
@@ -3044,9 +3153,24 @@ var dashboardTemplate = `<!DOCTYPE html>
                     if (data.success) {
                         document.getElementById('settingHost').value = data.settings.host || '';
                         document.getElementById('settingPort').value = data.settings.port || '';
-                        document.getElementById('settingPassword').value = data.settings.password || '';
-                        document.getElementById('settingAPIKey').value = data.settings.api_key || '';
-                        document.getElementById('settingCompatibilityMode').checked = (data.settings.compatibility_mode === 'true');
+                        
+                        // Load password fields and store original values
+                        const passwordField = document.getElementById('settingPassword');
+                        const authPasswordField = document.getElementById('settingGeminiAuthPassword');
+                        const apiKeyField = document.getElementById('settingGeminiAPIKey');
+                        
+                        passwordField.value = data.settings.password || '';
+                        passwordField.setAttribute('data-original-value', data.settings.password || '');
+                        passwordField.removeAttribute('data-clear-requested');
+                        
+                        authPasswordField.value = data.settings.gemini_auth_password || '';
+                        authPasswordField.setAttribute('data-original-value', data.settings.gemini_auth_password || '');
+                        authPasswordField.removeAttribute('data-clear-requested');
+                        
+                        apiKeyField.value = data.settings.gemini_api_key || '';
+                        apiKeyField.setAttribute('data-original-value', data.settings.gemini_api_key || '');
+                        apiKeyField.removeAttribute('data-clear-requested');
+                        
                         document.getElementById('settingMaxRetries').value = data.settings.max_retries || '5';
                         document.getElementById('settingProxy').value = data.settings.proxy || '';
                         document.getElementById('settingGeminiEndpoint').value = data.settings.gemini_endpoint || '';
@@ -3069,10 +3193,10 @@ var dashboardTemplate = `<!DOCTYPE html>
                 
                 // Build settings object
                 // For most fields: only send if non-empty (preserves existing)
-                // For proxy and compatibility_mode: always send to allow clearing/toggling
+                // For proxy and passwords: handle clearing explicitly
                 const settings = {};
                 const fields = [
-                    'host', 'port', 'password', 'api_key', 'max_retries',
+                    'host', 'port', 'max_retries',
                     'gemini_endpoint', 'resource_manager_endpoint',
                     'service_usage_endpoint', 'oauth2_endpoint', 'google_apis_endpoint'
                 ];
@@ -3084,13 +3208,32 @@ var dashboardTemplate = `<!DOCTYPE html>
                     }
                 });
                 
+                // Handle password fields - check if clear was requested
+                const passwordField = document.getElementById('settingPassword');
+                const authPasswordField = document.getElementById('settingGeminiAuthPassword');
+                const apiKeyField = document.getElementById('settingGeminiAPIKey');
+                
+                if (passwordField.getAttribute('data-clear-requested') === 'true') {
+                    settings['password'] = '__UNSET__';
+                } else if (passwordField.value && passwordField.value.trim() !== '') {
+                    settings['password'] = passwordField.value.trim();
+                }
+                
+                if (authPasswordField.getAttribute('data-clear-requested') === 'true') {
+                    settings['gemini_auth_password'] = '__UNSET__';
+                } else if (authPasswordField.value && authPasswordField.value.trim() !== '') {
+                    settings['gemini_auth_password'] = authPasswordField.value.trim();
+                }
+                
+                if (apiKeyField.getAttribute('data-clear-requested') === 'true') {
+                    settings['gemini_api_key'] = '__UNSET__';
+                } else if (apiKeyField.value && apiKeyField.value.trim() !== '') {
+                    settings['gemini_api_key'] = apiKeyField.value.trim();
+                }
+                
                 // Always include proxy field (even if empty) to allow clearing
                 const proxyValue = formData.get('proxy');
                 settings['proxy'] = proxyValue ? proxyValue.trim() : '';
-                
-                // Always include compatibility_mode field to allow toggling
-                const compatibilityMode = document.getElementById('settingCompatibilityMode').checked;
-                settings['compatibility_mode'] = compatibilityMode ? 'true' : 'false';
 
                 loading.show('Saving settings...');
 

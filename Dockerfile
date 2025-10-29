@@ -30,7 +30,8 @@ EXPOSE 7860
 # Set environment variables
 ENV HOST=0.0.0.0 \
     PORT=7860 \
-    GEMINI_AUTH_PASSWORD=123456
+    GEMINI_AUTH_PASSWORD=123456 \
+    DEFAULT_LANGUEGE=zh
 
 # Run the application
 ENTRYPOINT ["/gcli2apigo"]
