@@ -374,8 +374,7 @@ func init() {
 // GetThinkingBudget gets the default thinking budget for a model
 // Returns 1024 (minimum) to reduce thinking token usage and improve response speed
 func GetThinkingBudget(modelName string) int {
-	// Minimum thinking budget for all models
-	return 128
+	return -1
 }
 
 // GetUserAgent generates User-Agent string matching gemini-cli format
@@ -417,3 +416,4 @@ func GetClientMetadata(projectID string) map[string]any {
 		"duetProject": projectID,
 	}
 }
+
