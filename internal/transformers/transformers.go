@@ -185,7 +185,7 @@ func GeminiResponseToOpenAI(geminiResp map[string]interface{}, model string) map
 			}
 		}
 
-		contentStr := strings.Join(contentParts, "\n\n")
+		contentStr := strings.Join(contentParts, "")
 
 		// Build message object
 		message := map[string]interface{}{
@@ -264,7 +264,7 @@ func GeminiStreamChunkToOpenAI(geminiChunk map[string]interface{}, model string,
 			}
 		}
 
-		contentStr := strings.Join(contentParts, "\n\n")
+		contentStr := strings.Join(contentParts, "")
 
 		// Build delta object
 		delta := make(map[string]interface{})
@@ -529,3 +529,4 @@ type candidateAccumulator struct {
 	finishReason     string
 	role             string
 }
+
