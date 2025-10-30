@@ -572,6 +572,12 @@ func ReloadCredentialPool() error {
 	// Replace the global credential pool
 	credentialPool = newPool
 
+	// Update the rate-limited pool to use the new credential pool
+	if rateLimitedPool != nil {
+		rateLimitedPool.CredentialPool = newPool
+		log.Printf("[DEBUG] Rate-limited pool updated with new credential pool")
+	}
+
 	// Log final credential count
 	totalCredentials := credentialPool.Size()
 	if totalCredentials == 0 {

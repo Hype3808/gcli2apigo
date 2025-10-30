@@ -28,10 +28,11 @@ COPY --from=builder /build/oauth_creds /oauth_creds
 EXPOSE 7860
 
 # Set environment variables
+# Note: If PASSWORD, GEMINI_AUTH_PASSWORD, and GEMINI_API_KEY are all empty,
+# PASSWORD will default to "123456" on first start
 ENV HOST=0.0.0.0 \
     PORT=7860 \
-    GEMINI_AUTH_PASSWORD=123456 \
-    DEFAULT_LANGUEGE=zh
+    DEFAULT_LANGUAGE=zh
 
 # Run the application
 ENTRYPOINT ["/gcli2apigo"]

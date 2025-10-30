@@ -107,9 +107,9 @@ func init() {
 
 // Authentication
 var (
-	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456") // Dashboard only
-	GeminiAPIKey       = getEnvOrDefault("GEMINI_API_KEY", "123456")       // API requests only
-	Password           = os.Getenv("PASSWORD")                             // Both dashboard and API
+	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "") // Dashboard only
+	GeminiAPIKey       = getEnvOrDefault("GEMINI_API_KEY", "")       // API requests only
+	Password           = os.Getenv("PASSWORD")                       // Both dashboard and API
 )
 
 // Debug Logging
@@ -121,13 +121,35 @@ var DefaultLanguage = getEnvOrDefault("DEFAULT_LANGUAGE", "zh")
 // ReloadConfig reloads configuration from environment variables
 // Call this after loading .env file to pick up new values
 func ReloadConfig() {
-	GeminiAuthPassword = getEnvOrDefault("GEMINI_AUTH_PASSWORD", "123456")
+	GeminiAuthPassword = os.Getenv("GEMINI_AUTH_PASSWORD")
 	GeminiAPIKey = os.Getenv("GEMINI_API_KEY")
 	Password = os.Getenv("PASSWORD")
 	DebugLoggingEnabled = os.Getenv("DEBUG_LOGGING") == "true"
 	DefaultLanguage = getEnvOrDefault("DEFAULT_LANGUAGE", "zh")
+
+	// Apply default PASSWORD if all auth variables are empty
+	if Password == "" && GeminiAuthPassword == "" && GeminiAPIKey == "" {
+		Password = "123456"
+		log.Printf("[WARN] No authentication credentials found in environment variables")
+		log.Printf("[INFO] Setting default PASSWORD=123456 for first-time setup")
+	}
+
+	// Validate: if PASSWORD is empty, GEMINI_AUTH_PASSWORD and GEMINI_API_KEY must have values
+	if Password == "" {
+		if GeminiAuthPassword == "" {
+			log.Printf("[ERROR] PASSWORD is empty, but GEMINI_AUTH_PASSWORD is also empty")
+			log.Printf("[ERROR] Please set either PASSWORD or both GEMINI_AUTH_PASSWORD and GEMINI_API_KEY")
+			os.Exit(1)
+		}
+		if GeminiAPIKey == "" {
+			log.Printf("[ERROR] PASSWORD is empty, but GEMINI_API_KEY is also empty")
+			log.Printf("[ERROR] Please set either PASSWORD or both GEMINI_AUTH_PASSWORD and GEMINI_API_KEY")
+			os.Exit(1)
+		}
+	}
+
 	log.Printf("[INFO] Configuration reloaded: AuthPassword set=%v, APIKey set=%v, Password set=%v, Debug=%v, Language=%s",
-		GeminiAuthPassword != "123456", GeminiAPIKey != "", Password != "", DebugLoggingEnabled, DefaultLanguage)
+		GeminiAuthPassword != "", GeminiAPIKey != "", Password != "", DebugLoggingEnabled, DefaultLanguage)
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -416,4 +438,3 @@ func GetClientMetadata(projectID string) map[string]any {
 		"duetProject": projectID,
 	}
 }
-

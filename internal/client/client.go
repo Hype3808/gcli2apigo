@@ -130,12 +130,46 @@ func SendGeminiRequest(payload map[string]any, isStreaming bool) (any, error) {
 		maxRetries = 5 // Ensure at least 1 attempt
 	}
 
+	// Track if we've already tried reloading credentials
+	hasReloadedCredentials := false
+
 	for {
 		// Step 1: Randomly obtain an OAuth credential from the oauth_creds folder
 		credEntry, err := auth.GetCredentialForRequest()
 		if err != nil {
-			log.Printf("[ERROR] Credential selection failed: %v", err)
-			return nil, fmt.Errorf("credential selection failed: %v", err)
+			// Check if error is due to no credentials available
+			if strings.Contains(err.Error(), "no credentials available") || strings.Contains(err.Error(), "credential pool not initialized") {
+				// Try reloading credentials once if we haven't already
+				if !hasReloadedCredentials {
+					log.Printf("[WARN] No credentials available, attempting to reload credential pool...")
+					if reloadErr := auth.ReloadCredentialPool(); reloadErr != nil {
+						log.Printf("[ERROR] Failed to reload credential pool: %v", reloadErr)
+						log.Printf("[ERROR] Credential selection failed: %v", err)
+						return nil, fmt.Errorf("credential selection failed: %v", err)
+					}
+
+					hasReloadedCredentials = true
+					log.Printf("[INFO] Credential pool reloaded, retrying credential selection...")
+
+					// Retry getting credentials after reload
+					credEntry, err = auth.GetCredentialForRequest()
+					if err != nil {
+						log.Printf("[ERROR] Still no credentials available after reload: %v", err)
+						return nil, fmt.Errorf("credential selection failed: %v", err)
+					}
+
+					// Successfully got credentials after reload, continue with request
+					log.Printf("[INFO] Successfully selected credential after reload: %s", credEntry.ProjectID)
+				} else {
+					// Already tried reloading, return error
+					log.Printf("[ERROR] Credential selection failed: %v", err)
+					return nil, fmt.Errorf("credential selection failed: %v", err)
+				}
+			} else {
+				// Different error, return immediately
+				log.Printf("[ERROR] Credential selection failed: %v", err)
+				return nil, fmt.Errorf("credential selection failed: %v", err)
+			}
 		}
 
 		// Check if we've already tried this credential

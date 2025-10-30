@@ -274,6 +274,8 @@ func (dh *DashboardHandlers) HandleDeleteCredential(w http.ResponseWriter, r *ht
 	// Reload credential pool after deletion
 	if err := auth.ReloadCredentialPool(); err != nil {
 		log.Printf("[WARN] Failed to reload credential pool after deletion: %v", err)
+	} else {
+		log.Printf("[INFO] Credential pool reloaded successfully after deletion")
 	}
 
 	// Success response
@@ -436,6 +438,8 @@ func (dh *DashboardHandlers) HandleUploadCredentials(w http.ResponseWriter, r *h
 		// Reload credential pool after upload
 		if err := auth.ReloadCredentialPool(); err != nil {
 			log.Printf("[WARN] Failed to reload credential pool after upload: %v", err)
+		} else {
+			log.Printf("[INFO] Credential pool reloaded successfully after JSON upload")
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -461,6 +465,8 @@ func (dh *DashboardHandlers) HandleUploadCredentials(w http.ResponseWriter, r *h
 		// Reload credential pool after upload
 		if err := auth.ReloadCredentialPool(); err != nil {
 			log.Printf("[WARN] Failed to reload credential pool after upload: %v", err)
+		} else {
+			log.Printf("[INFO] Credential pool reloaded successfully after ZIP upload (%d credentials)", count)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

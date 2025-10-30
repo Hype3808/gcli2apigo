@@ -10,8 +10,8 @@ services:
       - "7860:7860"
     environment:
       - PASSWORD=${PASSWORD:-}
-      - GEMINI_AUTH_PASSWORD=${GEMINI_AUTH_PASSWORD:-123456}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-123456}
+      - GEMINI_AUTH_PASSWORD=${GEMINI_AUTH_PASSWORD:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - HOST=0.0.0.0
       - PORT=7860
       - OAUTH_CREDS_FOLDER=/oauth_creds
