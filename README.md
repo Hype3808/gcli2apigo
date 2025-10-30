@@ -52,9 +52,9 @@ OpenAI-compatible API proxy for Google's Gemini models with OAuth credential man
 - 假流式/gemini-2.5-flash-preview-05-20
 - 假流式/gemini-2.5-flash-preview-04-17
 
-- `-fake` and `假流式/` model variations indicate fake streaming models, make sure stream=True is enabled when using these models
-- To use `-fake` set DEFAULT_LANGUAGE to en in `.env` file
-- To use `假流式/` set DEFAULT_LANGUAGE to zh in `.env` file
+`-fake` and `假流式/` model variations indicate fake streaming models, make sure stream=True is enabled when using these models
+To use `-fake` set DEFAULT_LANGUAGE to en in `.env` file
+To use `假流式/` set DEFAULT_LANGUAGE to zh in `.env` file
 
 ## Quick Start
 
@@ -365,3 +365,4 @@ Contributions are welcome! Please:
 
 - **Issues**: [GitHub Issues](https://github.com/Hype3808/gcli2apigo/issues)
 - **Logs**: Enable DEBUG_LOGGING for detailed troubleshooting
+
