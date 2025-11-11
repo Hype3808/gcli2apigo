@@ -2,18 +2,14 @@ version: '3.8'
 
 services:
   gcli2apigo:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/hype3808/gcli2apigo
     container_name: gcli2apigo
-    ports:
-      - "7860:7860"
     environment:
-      - PASSWORD=${PASSWORD:-}
+      - PASSWORD=${PASSWORD:-123456}
       - GEMINI_AUTH_PASSWORD=${GEMINI_AUTH_PASSWORD:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - HOST=0.0.0.0
-      - PORT=7860
+      - PORT=${PORT:-7860}
       - OAUTH_CREDS_FOLDER=/oauth_creds
       - DEFAULT_LANGUAGE=zh
     volumes:
@@ -31,4 +27,5 @@ services:
 networks:
   gcli2apigo-network:
     driver: bridge
+
     name: gcli2apigo-network
