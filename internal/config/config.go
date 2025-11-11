@@ -259,19 +259,6 @@ var BaseModels = []Model{
 		TopK:                       64,
 	},
 	{
-		Name:                       "models/gemini-2.5-pro-preview-05-06",
-		Version:                    "002",
-		DisplayName:                "Gemini 2.5 Pro Preview 0506",
-		Description:                "Gemini 2.5 Pro Preview 0506",
-		InputTokenLimit:            1048576,
-		OutputTokenLimit:           65535,
-		SupportedGenerationMethods: []string{"generateContent", "streamGenerateContent"},
-		Temperature:                1.0,
-		MaxTemperature:             2.0,
-		TopP:                       0.95,
-		TopK:                       64,
-	},
-	{
 		Name:                       "models/gemini-2.5-pro",
 		Version:                    "002",
 		DisplayName:                "Gemini 2.5 Pro",
@@ -360,3 +347,4 @@ func GetClientMetadata(projectID string) map[string]any {
 		"duetProject": projectID,
 	}
 }
+
